@@ -165,7 +165,7 @@ bool App::init() {
 
 void App::initAssets(void) {
     // load shader program
-    shader = ShaderProgram("resources/shaders/basic.vert", "resources/shaders/basic.frag");
+    shader = ShaderProgram("resources/shaders/basic.vert", "resources/shaders/basic_uniform.frag");
 
     // load model
     Model triangle_model("resources/objects/triangle.obj", shader);
@@ -188,7 +188,7 @@ int App::run() {
 
         // Activate main shader and set uniforms
         shader.activate();
-        shader.setUniform("uniform_Color", currentColor);
+        shader.setUniform("ucolor", currentColor);
 
         // Draw all models in the scene
         for (auto& [name, model] : scene) {
