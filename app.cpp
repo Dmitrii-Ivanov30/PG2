@@ -189,8 +189,11 @@ void App::initAssets(void) {
 
 
 int App::run() {
-
     glEnable(GL_DEPTH_TEST);
+
+    // FPS counting variables
+    double lastTime = glfwGetTime();
+    int frameCount = 0;
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -207,7 +210,22 @@ int App::run() {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        // FPS calculation
+        frameCount++;
+        const double current_time = glfwGetTime();
+        const double elapsed = current_time - lastTime;
+		// update window title every second
+        if (elapsed >= 1.0) {
+            int fps = static_cast<int>(frameCount / elapsed);
+            std::string title = windowTitle + " [FPS: " + std::to_string(fps) + "]";
+            glfwSetWindowTitle(window, title.c_str());
+
+            frameCount = 0;
+            lastTime = current_time;
+        }
     }
+
     return EXIT_SUCCESS;
 }
 
