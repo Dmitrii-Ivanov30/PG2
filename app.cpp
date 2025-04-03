@@ -3,6 +3,7 @@
 
 App::App() {
     window = nullptr;
+	std::cout << "Application initialized\n";
 }
 
 void App::loadConfig() {
@@ -23,12 +24,77 @@ void App::loadConfig() {
 
 		// close file
 		configFile.close();
+
+		std::cout << "Window configuration loaded successfully:\n";
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Error loading window configurations: " << e.what() 
             << " using default settings" << std::endl;
     }
 }
+
+void App::printGLInfo() {
+    // basic OpenGL information
+    std::cout << "\nOpenGL Context Information:" << std::endl;
+    std::cout << "===========================" << std::endl;
+
+    // vendor and renderer information
+    const char* vendor = (const char*)glGetString(GL_VENDOR);
+    std::cout << "Vendor: \t" << (vendor ? vendor : "<Unknown>") << '\n';
+
+    const char* renderer = (const char*)glGetString(GL_RENDERER);
+    std::cout << "Renderer: \t" << (renderer ? renderer : "<Unknown>") << '\n';
+
+    // version information
+    const char* gl_version = (const char*)glGetString(GL_VERSION);
+    std::cout << "OpenGL Version: \t" << (gl_version ? gl_version : "<Unknown>") << '\n';
+
+    const char* glsl_version = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+    std::cout << "GLSL Version: \t\t" << (glsl_version ? glsl_version : "<Unknown>") << '\n';
+
+    // numeric version verification
+    GLint major, minor;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
+    std::cout << "OpenGL Context Version: \t" << major << "." << minor << '\n';
+
+    if (major < 4 || (major == 4 && minor < 6)) {
+        throw std::runtime_error("OpenGL 4.6 context not created!");
+    }
+
+    // profile information
+    GLint profile_mask;
+    glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profile_mask);
+    std::cout << "Context Profile: \t";
+
+    if (profile_mask & GL_CONTEXT_CORE_PROFILE_BIT) {
+        std::cout << "Core Profile";
+    }
+    else if (profile_mask & GL_CONTEXT_COMPATIBILITY_PROFILE_BIT) {
+        std::cout << "Compatibility Profile";
+    }
+    else {
+        std::cout << "<Unknown Profile>";
+    }
+    std::cout << '\n';
+
+    // context flags
+    GLint context_flags;
+    glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
+    std::cout << "Context Flags: \t\t";
+
+    if (context_flags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT)
+        std::cout << "[Forward Compatible] ";
+    if (context_flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+        std::cout << "[Debug] ";
+    if (context_flags & GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT)
+        std::cout << "[Robust Access] ";
+    if (context_flags & GL_CONTEXT_FLAG_NO_ERROR_BIT)
+        std::cout << "[No Error] ";
+
+    std::cout << "\n===========================\n\n";
+}
+
 
 void App::mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods) {
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
@@ -46,7 +112,11 @@ void App::mouse_clicked_callback(GLFWwindow* window, int button, int action, int
     }
 }
 
+
 bool App::init() {
+    // request debug context
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+
 	// load window configuration
     loadConfig();
 
@@ -70,6 +140,24 @@ bool App::init() {
         throw std::runtime_error("Failed to initialize GLEW");
     }
 
+	// print OpenGL information
+    std::cout << "\nInitializing OpenGL context...\n";
+    printGLInfo();
+
+	// print OpenGL errors
+    if (GLEW_ARB_debug_output)
+    {
+        glDebugMessageCallback(MessageCallback, 0);
+        glEnable(GL_DEBUG_OUTPUT);
+
+        //default is asynchronous debug output, use this to simulate glGetError() functionality
+        //glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
+        std::cout << "GL_DEBUG enabled.\n" << std::endl;
+    }
+    else
+        std::cout << "GL_DEBUG NOT SUPPORTED!\n" << std::endl;
+
     // activate callbacks
     glfwSetWindowUserPointer(window, this);
     glfwSetMouseButtonCallback(window, mouse_clicked_callback);
@@ -77,6 +165,7 @@ bool App::init() {
     // init resources
     try {
         initAssets();
+		std::cout << "Assets initialized successfully\n";
     }
     catch (const std::exception& e) {
         std::cerr << "Asset initialization failed: " << e.what() << std::endl;
@@ -85,6 +174,7 @@ bool App::init() {
 
     return true;
 }
+
 
 void App::initAssets(void) {
     // load shader program
@@ -96,6 +186,7 @@ void App::initAssets(void) {
     // add to scene
     scene.emplace("triangle", std::move(triangle_model));
 }
+
 
 int App::run() {
 

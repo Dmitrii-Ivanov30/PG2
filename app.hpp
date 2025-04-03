@@ -32,7 +32,10 @@
 #include "assets.hpp"  
 #include "ShaderProgram.hpp"  
 #include "Model.hpp"  
-#include "Mesh.hpp"  
+#include "Mesh.hpp"
+
+// callbacks
+#include "gl_err_callback.h"
 
 class App {  
 public:  
@@ -61,4 +64,5 @@ private:
     glm::vec4 currentColor{ 1.0f, 0.0f, 0.0f, 1.0f };  // RGBA format  
 
 	void loadConfig();
+	void printGLInfo();
 };
