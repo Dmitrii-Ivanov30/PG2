@@ -96,23 +96,6 @@ void App::printGLInfo() {
 }
 
 
-void App::mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods) {
-    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        if (app->currentColor.r == 1.0f) {
-            app->currentColor.r = 0.0f;
-            app->currentColor.g = 1.0f;
-        } else if (app->currentColor.g == 1.0f) {
-            app->currentColor.g = 0.0f;
-            app->currentColor.b = 1.0f;
-        } else if (app->currentColor.b == 1.0f) {
-            app->currentColor.b = 0.0f;
-            app->currentColor.r = 1.0f;
-        }
-    }
-}
-
-
 bool App::init() {
     // request debug context
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
@@ -158,9 +141,13 @@ bool App::init() {
     else
         std::cout << "GL_DEBUG NOT SUPPORTED!\n" << std::endl;
 
+    // aktivate Vsync
+    glfwSwapInterval(vsync ? 1 : 0);
+
     // activate callbacks
     glfwSetWindowUserPointer(window, this);
     glfwSetMouseButtonCallback(window, mouse_clicked_callback);
+	glfwSetKeyCallback(window, key_callback);
 
     // init resources
     try {
@@ -218,7 +205,8 @@ int App::run() {
 		// update window title every second
         if (elapsed >= 1.0) {
             int fps = static_cast<int>(frameCount / elapsed);
-            std::string title = windowTitle + " [FPS: " + std::to_string(fps) + "]";
+			// show title + fps + vsync status
+            std::string title = windowTitle + " [FPS: " + std::to_string(fps) + "], VSYNC: " + (vsync ? "ON" : "OFF");
             glfwSetWindowTitle(window, title.c_str());
 
             frameCount = 0;
@@ -241,4 +229,50 @@ App::~App() {
     glfwTerminate();
     std::cout << "Application shutdown successfully\n";
 
+}
+
+// ----- callbacks ------
+void App::mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods) {
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        if (app->currentColor.r == 1.0f) {
+            app->currentColor.r = 0.0f;
+            app->currentColor.g = 1.0f;
+        }
+        else if (app->currentColor.g == 1.0f) {
+            app->currentColor.g = 0.0f;
+            app->currentColor.b = 1.0f;
+        }
+        else if (app->currentColor.b == 1.0f) {
+            app->currentColor.b = 0.0f;
+            app->currentColor.r = 1.0f;
+        }
+    }
+}
+
+
+void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	std::cout << "Activate key_callback: Key pressed: " << key << std::endl;
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    if ((action == GLFW_PRESS) || (action == GLFW_REPEAT))
+    {
+        switch (key)
+        {
+        case GLFW_KEY_ESCAPE:
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            break;
+        case GLFW_KEY_V:
+            if (app->vsync) {
+                glfwSwapInterval(0);          // Set V-Sync OFF.
+				app->vsync = false;
+            }
+            else {
+                glfwSwapInterval(1);        // Set V-Sync ON.
+				app->vsync = true;
+            }
+            break;
+        default:
+            break;
+        }
+    }
 }

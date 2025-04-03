@@ -47,7 +47,7 @@ public:
     void initAssets();  
 
     static void mouse_clicked_callback(GLFWwindow *window, int button, int action, int mods);  
-
+    static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
     ~App();  
 
 protected:  
@@ -60,6 +60,8 @@ private:
 	int windowWidth{ 800 };
 	int windowHeight{ 600 };
 	std::string windowTitle{ "OpenGL Scene" }; 
+    // Vsync
+    bool vsync = true;
     // color uniform state  
     glm::vec4 currentColor{ 1.0f, 0.0f, 0.0f, 1.0f };  // RGBA format  
 
