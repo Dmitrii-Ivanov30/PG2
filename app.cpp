@@ -5,6 +5,31 @@ App::App() {
     window = nullptr;
 }
 
+void App::loadConfig() {
+	// load window configuration from JSON file
+    try {
+        std::ifstream configFile("app_settings.json");
+        if (!configFile.is_open()) {
+            throw std::runtime_error("Failed to open config file");
+        }
+
+        // parse JSON
+		nlohmann::json config = nlohmann::json::parse(configFile);
+
+        
+		windowWidth = config["default_resolution"].value("x", 800);
+		windowHeight = config["default_resolution"].value("y", 600);
+		windowTitle = config.value("appname", "OpenGL Scene");
+
+		// close file
+		configFile.close();
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Error loading window configurations: " << e.what() 
+            << " using default settings" << std::endl;
+    }
+}
+
 void App::mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods) {
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
@@ -22,6 +47,9 @@ void App::mouse_clicked_callback(GLFWwindow* window, int button, int action, int
 }
 
 bool App::init() {
+	// load window configuration
+    loadConfig();
+
     // init GLFW
     if (!glfwInit()) {
         throw std::runtime_error("Failed to initialize GLFW");
@@ -48,7 +76,7 @@ bool App::init() {
 
     // init resources
     try {
-        init_assets();
+        initAssets();
     }
     catch (const std::exception& e) {
         std::cerr << "Asset initialization failed: " << e.what() << std::endl;
@@ -58,7 +86,7 @@ bool App::init() {
     return true;
 }
 
-void App::init_assets(void) {
+void App::initAssets(void) {
     // load shader program
     shader = ShaderProgram("resources/shaders/basic.vert", "resources/shaders/basic.frag");
 
