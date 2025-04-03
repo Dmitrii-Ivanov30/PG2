@@ -56,7 +56,7 @@ bool App::init() {
     }
 
     // create window
-    window = glfwCreateWindow(800, 600, "OpenGL Scene", nullptr, nullptr);
+    window = glfwCreateWindow(windowWidth, windowHeight, windowTitle.c_str(), nullptr, nullptr);
     if (!window) {
         glfwTerminate();
         throw std::runtime_error("Failed to create GLFW window");
