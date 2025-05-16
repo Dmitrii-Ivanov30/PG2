@@ -1,9 +1,9 @@
 #version 460 core
 in vec3 aPos;
 
-uniform mat4 uP_m = mat4(1.0f);  # transform from 3D camera space to 2D display space
-uniform mat4 uV_m = mat4(1.0f);  # transform from model space to 3D camera space
-uniform mat4 uM_m = mat4(1.0f);  # transform from world space to model space
+uniform mat4 uP_m = mat4(1.0f);
+uniform mat4 uV_m = mat4(1.0f);
+uniform mat4 uM_m = mat4(1.0f);
 
 void main()
 {
