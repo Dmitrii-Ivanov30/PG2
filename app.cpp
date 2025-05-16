@@ -1,13 +1,12 @@
 #include "app.hpp"
 
 
-App::App() {
-    window = nullptr;
-	std::cout << "Application initialized\n";
+App::App() : window(nullptr), fov(60.0f), vsync(true), currentColor(1.0f, 0.0f, 0.0f, 1.0f) {
+    std::cout << "Application initialized\n";
 }
 
 void App::loadConfig() {
-	// load window configuration from JSON file
+    // load window configuration from JSON file
     try {
         std::ifstream configFile("app_settings.json");
         if (!configFile.is_open()) {
@@ -15,21 +14,24 @@ void App::loadConfig() {
         }
 
         // parse JSON
-		nlohmann::json config = nlohmann::json::parse(configFile);
+        nlohmann::json config = nlohmann::json::parse(configFile);
 
-        
-		windowWidth = config["default_resolution"].value("x", 800);
-		windowHeight = config["default_resolution"].value("y", 600);
-		windowTitle = config.value("appname", "OpenGL Scene");
+        windowWidth = config["default_resolution"].value("x", 800);
+        windowHeight = config["default_resolution"].value("y", 600);
+        windowTitle = config.value("appname", "OpenGL Scene");
+        fov = config.value("fov", 60.0f);
 
-		// close file
-		configFile.close();
+        // close file
+        configFile.close();
 
-		std::cout << "Window configuration loaded successfully:\n";
-	}
-	catch (const std::exception& e) {
-		std::cerr << "Error loading window configurations: " << e.what() 
+        std::cout << "Window configuration loaded successfully:\n";
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error loading window configurations: " << e.what()
             << " using default settings" << std::endl;
+        windowWidth = 800;
+        windowHeight = 600;
+        fov = 60.0f;
     }
 }
 
@@ -95,12 +97,11 @@ void App::printGLInfo() {
     std::cout << "\n===========================\n\n";
 }
 
-
 bool App::init() {
     // request debug context
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
-	// load window configuration
+    // load window configuration
     loadConfig();
 
     // init GLFW
@@ -123,36 +124,43 @@ bool App::init() {
         throw std::runtime_error("Failed to initialize GLEW");
     }
 
-	// print OpenGL information
+    // initial view matrix
+    updateProjection();
+    //viewMatrix = glm::lookAt(
+    //    glm::vec3(0.0f, 0.0f, 3.0f), // Camera position
+    //    glm::vec3(0.0f, 0.0f, 0.0f), // Look at
+    //    glm::vec3(0.0f, 1.0f, 0.0f)  // Up vector
+    //);
+    camera.position = glm::vec3(0.0f, 0.0f, 3.0f);
+    viewMatrix = camera.GetViewMatrix();
+
+    // print OpenGL information
     std::cout << "\nInitializing OpenGL context...\n";
     printGLInfo();
 
-	// print OpenGL errors
-    if (GLEW_ARB_debug_output)
-    {
+    // print OpenGL errors
+    if (GLEW_ARB_debug_output) {
         glDebugMessageCallback(MessageCallback, 0);
         glEnable(GL_DEBUG_OUTPUT);
-
-        //default is asynchronous debug output, use this to simulate glGetError() functionality
-        //glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-
         std::cout << "GL_DEBUG enabled.\n" << std::endl;
     }
-    else
+    else {
         std::cout << "GL_DEBUG NOT SUPPORTED!\n" << std::endl;
+    }
 
-    // aktivate Vsync
+    // activate Vsync
     glfwSwapInterval(vsync ? 1 : 0);
 
     // activate callbacks
     glfwSetWindowUserPointer(window, this);
     glfwSetMouseButtonCallback(window, mouse_clicked_callback);
-	glfwSetKeyCallback(window, key_callback);
+    glfwSetKeyCallback(window, key_callback);
+    glfwSetCursorPosCallback(window, cursor_position_callback); // mouse movement
 
     // init resources
     try {
         initAssets();
-		std::cout << "Assets initialized successfully\n";
+        std::cout << "Assets initialized successfully\n";
     }
     catch (const std::exception& e) {
         std::cerr << "Asset initialization failed: " << e.what() << std::endl;
@@ -162,61 +170,91 @@ bool App::init() {
     return true;
 }
 
-
 void App::initAssets(void) {
     // load shader program
-    shader = ShaderProgram("resources/shaders/basic.vert", "resources/shaders/basic_uniform.frag");
+    shader = ShaderProgram("resources/shaders/basic_core.vert", "resources/shaders/basic_core.frag");
 
     // load model
-    Model triangle_model("resources/objects/triangle.obj", shader);
-
+    Model triangleModel("resources/objects/triangle.obj", shader);
+    triangleModel.origin = glm::vec3(0.0f, 0.0f, 0.0f);  // center the model
     // add to scene
-    scene.emplace("triangle", std::move(triangle_model));
+    scene.emplace("triangle", std::move(triangleModel));
 }
 
+void App::updateProjection() {
+    float aspect = static_cast<float>(windowWidth) / windowHeight;
+    projectionMatrix = glm::perspective(
+        glm::radians(fov), aspect, 0.1f, 100.0f
+    );
+}
 
 int App::run() {
     glEnable(GL_DEPTH_TEST);
 
-    // FPS counting variables
+    // Enable back-face culling to improve performance by not rendering polygons facing away from the camera
+    //glCullFace(GL_BACK);
+    //glEnable(GL_CULL_FACE);
+
+    // Initialize camera settings
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture mouse
+    glfwGetCursorPos(window, &cursorLastX, &cursorLastY);        // get initial position
+
+    glViewport(0, 0, windowWidth, windowHeight);
+
+    // time variables
     double lastTime = glfwGetTime();
+    double lastFrameTime = glfwGetTime();
+    double deltaTime = 0.0;
     int frameCount = 0;
 
     while (!glfwWindowShouldClose(window)) {
+        // Calculate delta time
+        double currentFrameTime = glfwGetTime();
+        deltaTime = currentFrameTime - lastFrameTime;
+        lastFrameTime = currentFrameTime;
+
+        // Process camera movement
+        glm::vec3 moveOffset = camera.ProcessInput(window, deltaTime);
+        camera.position += moveOffset;
+
+        // Update view matrix from camera
+        viewMatrix = camera.GetViewMatrix();
+
+        // Clear buffers
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Activate main shader and set uniforms
         shader.activate();
-        shader.setUniform("ucolor", currentColor);
+        shader.setUniform("uP_m", projectionMatrix);
+        shader.setUniform("uV_m", viewMatrix); // Updated every frame
 
         // Draw all models in the scene
         for (auto& [name, model] : scene) {
-            model.draw();
+            model.draw(projectionMatrix, viewMatrix);
         }
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
 
         // FPS calculation
         frameCount++;
         const double current_time = glfwGetTime();
         const double elapsed = current_time - lastTime;
-		// update window title every second
+        // update window title every second
         if (elapsed >= 1.0) {
             int fps = static_cast<int>(frameCount / elapsed);
-			// show title + fps + vsync status
+            // show title + fps + vsync status
             std::string title = windowTitle + " [FPS: " + std::to_string(fps) + "], VSYNC: " + (vsync ? "ON" : "OFF");
             glfwSetWindowTitle(window, title.c_str());
 
             frameCount = 0;
             lastTime = current_time;
         }
+
+        glfwSwapBuffers(window);  // Update window content
+        glfwPollEvents();         // Process pending events
     }
 
     return EXIT_SUCCESS;
 }
-
 
 App::~App() {
     // cleanup models and shaders
@@ -228,7 +266,6 @@ App::~App() {
     }
     glfwTerminate();
     std::cout << "Application shutdown successfully\n";
-
 }
 
 // ----- callbacks ------
@@ -250,29 +287,41 @@ void App::mouse_clicked_callback(GLFWwindow* window, int button, int action, int
     }
 }
 
-
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	std::cout << "Activate key_callback: Key pressed: " << key << std::endl;
+    std::cout << "Activate key_callback: Key pressed: " << key << std::endl;
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
-    if ((action == GLFW_PRESS) || (action == GLFW_REPEAT))
-    {
-        switch (key)
-        {
+    if ((action == GLFW_PRESS) || (action == GLFW_REPEAT)) {
+        switch (key) {
         case GLFW_KEY_ESCAPE:
             glfwSetWindowShouldClose(window, GLFW_TRUE);
             break;
         case GLFW_KEY_V:
-            if (app->vsync) {
-                glfwSwapInterval(0);          // Set V-Sync OFF.
-				app->vsync = false;
-            }
-            else {
-                glfwSwapInterval(1);        // Set V-Sync ON.
-				app->vsync = true;
-            }
+            app->vsync = !app->vsync;
+            glfwSwapInterval(app->vsync ? 1 : 0);
             break;
         default:
             break;
         }
     }
 }
+
+void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    std::cout << "Activate cursor_position_callback." << std::endl;
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+
+    if (app->firstMouse) {
+        app->cursorLastX = xpos;
+        app->cursorLastY = ypos;
+        app->firstMouse = false;
+    }
+
+    // calculate offset with inverted Y axis (screen Y goes down, 3D Y goes up)
+    float xoffset = xpos - app->cursorLastX;
+    float yoffset = app->cursorLastY - ypos; // reversed since y-coordinates go bottom to top
+
+    app->cursorLastX = xpos;
+    app->cursorLastY = ypos;
+
+    app->camera.ProcessMouseMovement(xoffset, yoffset);
+}
+// -----------------------------------------

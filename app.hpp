@@ -16,8 +16,11 @@
 // OpenGL Extension Wrangler: allow all multiplatform GL functions  
 #include <GL/glew.h>  
 // WGLEW = Windows GL Extension Wrangler (change for different platform)  
-// platform specific functions (in this case Windows)  
-#include <GL/wglew.h>  
+#ifdef _WIN32
+    #include <GL/wglew.h>  // Windows-specific WGL extensions
+#elif defined(__linux__)
+    #include <GL/glxew.h>  // Linux-specific GLX extensions
+#endif 
 #include <GL/gl.h>  
 
 // GLFW toolkit  
@@ -33,38 +36,48 @@
 #include "ShaderProgram.hpp"  
 #include "Model.hpp"  
 #include "Mesh.hpp"
+#include "camera.hpp"
 
 // callbacks
 #include "gl_err_callback.h"
 
-class App {  
-public:  
-    GLFWwindow * window;  
-    App();  
+class App {
+public:
+    GLFWwindow* window;
+    glm::mat4 projectionMatrix;  // projection matrix
+    glm::mat4 viewMatrix;        // view matrix
+    float fov;                   // field of view
 
-    bool init();  
-    int run();  
-    void initAssets();  
+    App();
+    bool init();
+    int run();
+    void initAssets();
+    void updateProjection();
 
-    static void mouse_clicked_callback(GLFWwindow *window, int button, int action, int mods);  
+    static void mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods);
     static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    ~App();  
+    static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 
-protected:  
+    ~App();
+
+protected:
     // all objects of the scene addressable by name  
-    std::unordered_map<std::string, Model> scene;  
-    ShaderProgram shader;  
+    std::unordered_map<std::string, Model> scene;
+    ShaderProgram shader;
 
-private:  
-	// default window settings
-	int windowWidth{ 800 };
-	int windowHeight{ 600 };
-	std::string windowTitle{ "OpenGL Scene" }; 
-    // Vsync
-    bool vsync = true;
-    // color uniform state  
-    glm::vec4 currentColor{ 1.0f, 0.0f, 0.0f, 1.0f };  // RGBA format  
+private:
+    // default window settings
+    int windowWidth;
+    int windowHeight;
+    std::string windowTitle{ "OpenGL Scene" };
+    bool vsync;                  // V-Sync state
+    glm::vec4 currentColor;      // RGBA format  
 
-	void loadConfig();
-	void printGLInfo();
+    Camera camera{ glm::vec3(0.0f, 0.0f, 3.0f) }; // camera with initial position
+    double cursorLastX = 0.0;                     // last X mouse position
+    double cursorLastY = 0.0;                     // last Y mouse position
+    bool firstMouse = true;                       // first mouse movement flag
+
+    void loadConfig();
+    void printGLInfo();
 };
