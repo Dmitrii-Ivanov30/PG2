@@ -1,12 +1,10 @@
 #pragma once
 
-#include <GL/glew.h> 
-#include <GL/glxew.h>  // GLX extension support on Linux
 #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 //vertex description
-struct vertex {
-    glm::vec3 position;
+struct Vertex {
+	glm::vec3 position;  // position vector
+	glm::vec3 normal;    // normal vector
+	glm::vec2 texcoord;  // texture coordinates
 };
-

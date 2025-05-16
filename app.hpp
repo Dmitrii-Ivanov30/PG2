@@ -1,33 +1,83 @@
-// icp.cpp 
-// author: JJ
+#pragma once  
 
-#pragma once
+// OpenCV (does not depend on GL)  
+//#include <opencv2\opencv.hpp>  
+
+// include anywhere, in any order  
+#include <iostream>  
+#include <fstream>
+#include <chrono>  
+#include <stack>  
+#include <random>  
+#include <vector>  
+#include <unordered_map>  
+#include <nlohmann/json.hpp>  
+
+// OpenGL Extension Wrangler: allow all multiplatform GL functions  
+#include <GL/glew.h>  
+// WGLEW = Windows GL Extension Wrangler (change for different platform)  
+#ifdef _WIN32
+    #include <GL/wglew.h>  // Windows-specific WGL extensions
+#elif defined(__linux__)
+    #include <GL/glxew.h>  // Linux-specific GLX extensions
+#endif 
+#include <GL/gl.h>  
+
+// GLFW toolkit  
+// Uses GL calls to open GL context, i.e. GLEW __MUST__ be first.  
+#include <GLFW/glfw3.h>  
+
+// OpenGL math (and other additional GL libraries, at the end)  
+#include <glm/glm.hpp>  
+#include <glm/gtc/type_ptr.hpp>  
+
+// User includes  
+#include "assets.hpp"  
+#include "ShaderProgram.hpp"  
+#include "Model.hpp"  
+#include "Mesh.hpp"
+#include "camera.hpp"
+
+// callbacks
+#include "gl_err_callback.h"
 
 class App {
 public:
-    GLFWwindow * window;
+    GLFWwindow* window;
+    glm::mat4 projectionMatrix;  // projection matrix
+    glm::mat4 viewMatrix;        // view matrix
+    float fov;                   // field of view
+
     App();
-
-        bool init();
+    bool init();
     int run();
-    void init_assets();
+    void initAssets();
+    void updateProjection();
 
-    static void mouse_clicked_callback(GLFWwindow *window, int button, int action, int mods);
+    static void mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods);
+    static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 
     ~App();
+
+protected:
+    // all objects of the scene addressable by name  
+    std::unordered_map<std::string, Model> scene;
+    ShaderProgram shader;
+
 private:
-    //new GL stuff
-    GLuint shader_prog_ID{ 0 };
-    GLuint VBO_ID{ 0 };
-    GLuint VAO_ID{ 0 };
+    // default window settings
+    int windowWidth;
+    int windowHeight;
+    std::string windowTitle{ "OpenGL Scene" };
+    bool vsync;                  // V-Sync state
+    glm::vec4 currentColor;      // RGBA format  
 
-    GLfloat r{ 1.0f }, g{ 0.0f }, b{ 0.0f }, a{ 1.0f };
+    Camera camera{ glm::vec3(0.0f, 0.0f, 3.0f) }; // camera with initial position
+    double cursorLastX = 0.0;                     // last X mouse position
+    double cursorLastY = 0.0;                     // last Y mouse position
+    bool firstMouse = true;                       // first mouse movement flag
 
-    std::vector<vertex> triangle_vertices =
-    {
-        {{0.0f,  0.5f,  0.0f}},
-        {{0.5f, -0.5f,  0.0f}},
-        {{-0.5f, -0.5f,  0.0f}}
-    };
+    void loadConfig();
+    void printGLInfo();
 };
-
