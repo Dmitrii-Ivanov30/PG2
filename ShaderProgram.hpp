@@ -7,6 +7,7 @@
 
 class ShaderProgram {
 public:
+    GLuint getID() const { return ID; }
     // you can add more constructors for pipeline with GS, TS etc.
     ShaderProgram(void) = default; //does nothing
     ShaderProgram(const std::filesystem::path& VS_file, const std::filesystem::path& FS_file); // implementation of load, compile, and link shader

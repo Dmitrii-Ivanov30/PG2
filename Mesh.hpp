@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 #include <vector>
@@ -9,29 +9,29 @@
 
 #include "assets.hpp"
 #include "ShaderProgram.hpp"
-                         
+
 class Mesh {
 public:
     // mesh data
     glm::vec3 origin{};
     glm::vec3 orientation{};
-    
-    GLuint texture_id{0}; // texture id=0  means no texture
+
+    GLuint texture_id{ 0 }; // texture id=0  means no texture
     GLenum primitive_type = GL_POINT;
     ShaderProgram shader;
-    
-    // mesh material
-    glm::vec4 ambient_material{1.0f}; //white, non-transparent 
-    glm::vec4 diffuse_material{1.0f}; //white, non-transparent 
-    glm::vec4 specular_material{1.0f}; //white, non-transparent
-    float reflectivity{1.0f}; 
 
-	// vertex data
+    // mesh material
+    glm::vec4 ambient_material{ 1.0f }; //white, non-transparent 
+    glm::vec4 diffuse_material{ 1.0f }; //white, non-transparent 
+    glm::vec4 specular_material{ 1.0f }; //white, non-transparent
+    float reflectivity{ 1.0f };
+
+    // vertex data
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
-    
+
     // indirect (indexed) draw 
-	Mesh(GLenum primitive_type, ShaderProgram shader, std::vector<Vertex> const & vertices, std::vector<GLuint> const & indices, glm::vec3 const & origin, glm::vec3 const & orientation, GLuint const texture_id = 0):
+    Mesh(GLenum primitive_type, ShaderProgram shader, std::vector<Vertex> const& vertices, std::vector<GLuint> const& indices, glm::vec3 const& origin, glm::vec3 const& orientation, GLuint const texture_id = 0) :
         primitive_type(primitive_type),
         shader(shader),
         vertices(vertices),
@@ -73,29 +73,28 @@ public:
         glBindVertexArray(0);
     };
 
-    
-    void draw(glm::vec3 const & offset, glm::vec3 const & rotation ) {
- 		if (VAO == 0) {
-			std::cerr << "VAO not initialized!\n";
-			return;
-		}
- 
+
+    void draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model) {
         shader.activate();
-        
-        // for future use: set uniform variables: position, textures, etc...  
-        //set texture id etc...
-        //if (texture_id > 0) {
-        //    ...
-        //}
-        
-        // draw mesh: bind vertex array object, draw all elements with selected primitive type 
+
+        // set transformation matrices
+        glm::mat4 mvp = projection * view * model;
+        GLint uProj = glGetUniformLocation(shader.getID(), "uP_m");
+        GLint uView = glGetUniformLocation(shader.getID(), "uV_m");
+        GLint uModel = glGetUniformLocation(shader.getID(), "uM_m");
+
+        if (uProj != -1) glUniformMatrix4fv(uProj, 1, GL_FALSE, &projection[0][0]);
+        if (uView != -1) glUniformMatrix4fv(uView, 1, GL_FALSE, &view[0][0]);
+        if (uModel != -1) glUniformMatrix4fv(uModel, 1, GL_FALSE, &model[0][0]);
+
+        // draw mesh
         glBindVertexArray(VAO);
         glDrawElements(primitive_type, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);  // unbind VAO
+        glBindVertexArray(0);
     }
 
 
-	void clear(void) {
+    void clear(void) {
         texture_id = 0;
         primitive_type = GL_POINT;
         // clear rest of the member variables to safe default
@@ -103,7 +102,7 @@ public:
         indices.clear();
         origin = glm::vec3(0.0f);
         orientation = glm::vec3(0.0f);
-        
+
         // delete all allocations 
         if (VBO) { glDeleteBuffers(1, &VBO); VBO = 0; }
         if (EBO) { glDeleteBuffers(1, &EBO); EBO = 0; }
@@ -113,8 +112,7 @@ public:
 private:
     // OpenGL buffer IDs
     // ID = 0 is reserved (i.e. uninitalized)
-     unsigned int VAO{0}, VBO{0}, EBO{0};
+    unsigned int VAO{ 0 }, VBO{ 0 }, EBO{ 0 };
 };
-  
 
 
