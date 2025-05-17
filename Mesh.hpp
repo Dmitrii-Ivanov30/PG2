@@ -77,6 +77,12 @@ public:
     void draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model) {
         shader.activate();
 
+        // Set texture if available
+        if (texture_id != 0) {
+            glBindTextureUnit(0, texture_id);
+            glUniform1i(glGetUniformLocation(shader.getID(), "tex0"), 0);
+        }
+
         // set transformation matrices
         glm::mat4 mvp = projection * view * model;
         GLint uProj = glGetUniformLocation(shader.getID(), "uP_m");
@@ -95,7 +101,12 @@ public:
 
 
     void clear(void) {
-        texture_id = 0;
+		// clear texture
+        if (texture_id != 0) {
+            glDeleteTextures(1, &texture_id);
+            texture_id = 0;
+        }
+
         primitive_type = GL_POINT;
         // clear rest of the member variables to safe default
         vertices.clear();

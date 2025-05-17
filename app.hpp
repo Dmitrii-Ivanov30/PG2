@@ -12,6 +12,7 @@
 #include <vector>  
 #include <unordered_map>  
 #include <nlohmann/json.hpp>  
+#include <opencv2/opencv.hpp>
 
 // OpenGL Extension Wrangler: allow all multiplatform GL functions  
 #include <GL/glew.h>  
@@ -52,6 +53,8 @@ public:
     bool init();
     int run();
     void initAssets();
+    GLuint textureInit(const std::filesystem::path& file_name);
+    GLuint gen_tex(cv::Mat& image);
     void updateProjection();
 
     static void mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods);
