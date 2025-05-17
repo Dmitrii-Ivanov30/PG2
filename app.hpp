@@ -12,7 +12,7 @@
 #include <vector>  
 #include <unordered_map>  
 #include <nlohmann/json.hpp>  
-#include <opencv2\opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 // OpenGL Extension Wrangler: allow all multiplatform GL functions  
 #include <GL/glew.h>  

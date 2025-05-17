@@ -100,6 +100,7 @@ void App::printGLInfo() {
 bool App::init() {
 	// initialize GLFW window hints
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
 
     // assume ALL objects are non-transparent 
     glEnable(GL_CULL_FACE);
@@ -185,8 +186,7 @@ void App::initAssets(void) {
     triangleModel.origin = glm::vec3(0.0f, 0.0f, 0.0f);  // center the model
 
     // load texture
-    GLuint texture = textureInit("resources/textures/box.png");
-
+    GLuint texture = textureInit("resources/textures/box_rgb888.png");
 
     // assign all textures to all meshes
     for (auto& mesh : triangleModel.meshes) {
@@ -224,7 +224,7 @@ GLuint App::gen_tex(cv::Mat& image)
     GLuint ID = 0;
     if (image.empty())
         throw std::runtime_error("Image empty?\n");
-    
+
 
     // Generates an OpenGL texture object
     glCreateTextures(GL_TEXTURE_2D, 1, &ID);
@@ -243,15 +243,6 @@ GLuint App::gen_tex(cv::Mat& image)
     default:
         throw std::runtime_error("unsupported channel cnt. in texture:" + std::to_string(image.channels()));
     }
-
-    // Configures the type of algorithm that is used to make the image smaller or bigger
-    // nearest neighbor - ugly & fast 
-    //glTextureParameteri(ID, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  
-    //glTextureParameteri(ID, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    // bilinear - nicer & slower
-    //glTextureParameteri(ID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);    
-    //glTextureParameteri(ID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     // MIPMAP filtering + automatic MIPMAP generation - nicest, needs more memory. Notice: MIPMAP is only for image minifying.
     glTextureParameteri(ID, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // bilinear magnifying
