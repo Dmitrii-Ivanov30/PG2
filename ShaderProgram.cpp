@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
