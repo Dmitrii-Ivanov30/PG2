@@ -5,7 +5,6 @@ CMakeLists.txt
 vcpkg.json
 .gitattributes
 .vs/
-app_settings.json
 pg2.sln
 pg2.vcxproj
 pg2.vcxproj.filters
