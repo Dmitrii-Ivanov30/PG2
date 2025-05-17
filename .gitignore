@@ -3,3 +3,15 @@ cmake-build-debug/
 skeleton/
 CMakeLists.txt
 vcpkg.json
+.gitattributes
+.vs/
+app_settings.json
+pg2.sln
+pg2.vcxproj
+pg2.vcxproj.filters
+pg2.vcxproj.user
+pg2/
+resources/objects/plane_tri_vnt.obj
+vcpkg-configuration.json
+vcpkg_installed/
+x64/
