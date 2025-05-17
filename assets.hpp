@@ -8,4 +8,3 @@ struct Vertex {
 	glm::vec3 normal;    // normal vector
 	glm::vec2 texcoord;  // texture coordinates
 };
-
