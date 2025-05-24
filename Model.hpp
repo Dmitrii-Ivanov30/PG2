@@ -3,12 +3,14 @@
 #include <filesystem>
 #include <string>
 #include <vector> 
-#include <glm/glm.hpp> 
+#include <glm/glm.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "assets.hpp"
 #include "Mesh.hpp"
 #include "ShaderProgram.hpp"
 #include "OBJloader.hpp"
+#include "HeightMap.h"
 
 
 class Model {
@@ -19,6 +21,7 @@ public:
     glm::vec3 orientation{};
     glm::vec3 scale{ 1.0f };
     ShaderProgram shader;
+    bool transparent {false};
 
     glm::mat4 modelMatrix{ 1.0f };  // model matrix for transformations
 
@@ -26,6 +29,10 @@ public:
     Model(const std::filesystem::path& filename, ShaderProgram shader) : shader(shader) {
         loadModel(filename);
     }
+    Model(ShaderProgram shader) : shader(shader) {
+        loadTerrainModel();
+        origin = glm::vec3(0.0f, 0.0f, 0.0f);
+    };
 
     // update position etc. based on running time
     void update(const float delta_t) {
@@ -47,6 +54,7 @@ public:
     }
 
 private:
+#include <tuple>
     void loadModel(const std::filesystem::path& path) {
         // load mesh (all meshes) of the model, (in the future: load material of each mesh, load textures...)
         // call LoadOBJFile, LoadMTLFile (if exist), process data, create mesh and set its properties
@@ -86,5 +94,17 @@ private:
             << "Vertices: " << vertices.size() << "\n"
             << "Indices: " << indices.size() << "\n"
             << "Meshes: " << meshes.size() << std::endl;
+    }
+    void loadTerrainModel() {
+        cv::Mat terrain = cv::imread("resources/textures/heights.png", cv::IMREAD_GRAYSCALE);
+        if (terrain.empty()) {
+            throw std::runtime_error("No heightmap in file: resources/textures/heights.png");
+        }
+        HeightMap map{};
+        auto [vertices, indices] = map.GenHeightMap(terrain, 50);
+        Mesh mapMesh(GL_TRIANGLES, shader, vertices, indices, origin, orientation);
+        meshes.emplace_back(mapMesh);
+        name = "Terrain";
+        std::cout << "Loaded heightmap: resources/textures/heights.png" << std::endl;
     }
 };
