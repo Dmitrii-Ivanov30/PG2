@@ -53,8 +53,8 @@ public:
     bool init();
     int run();
     void initAssets();
-    GLuint textureInit(const std::filesystem::path& file_name);
-    GLuint gen_tex(cv::Mat& image);
+    GLuint textureInit(const std::filesystem::path& file_name, bool& isTransparent);
+    GLuint gen_tex(cv::Mat& image, bool& isTransparent);
     void updateProjection();
 
     static void mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods);
@@ -72,6 +72,8 @@ private:
     // default window settings
     int windowWidth;
     int windowHeight;
+    bool AA;
+    int AASamples;
     std::string windowTitle{ "OpenGL Scene" };
     bool vsync;                  // V-Sync state
     glm::vec4 currentColor;      // RGBA format  

@@ -14,3 +14,4 @@ resources/objects/plane_tri_vnt.obj
 vcpkg-configuration.json
 vcpkg_installed/
 x64/
+shaders_all/

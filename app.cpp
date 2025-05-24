@@ -20,7 +20,8 @@ void App::loadConfig() {
         windowHeight = config["default_resolution"].value("y", 600);
         windowTitle = config.value("appname", "OpenGL Scene");
         fov = config.value("fov", 60.0f);
-
+        AA = config["AA"].value("enabled", false);
+        AASamples = config["AA"].value("samples", 0);
         // close file
         configFile.close();
 
@@ -115,7 +116,8 @@ bool App::init() {
     if (!glfwInit()) {
         throw std::runtime_error("Failed to initialize GLFW");
     }
-
+    // request MSAA
+    if (AA) glfwWindowHint(GLFW_SAMPLES, AASamples);
     // create window
     window = glfwCreateWindow(windowWidth, windowHeight, windowTitle.c_str(), nullptr, nullptr);
     if (!window) {
@@ -130,6 +132,8 @@ bool App::init() {
         glfwTerminate();
         throw std::runtime_error("Failed to initialize GLEW");
     }
+    // enable antialiasing
+    if (AA) glEnable(GL_MULTISAMPLE);
 
     // initial view matrix
     updateProjection();
@@ -173,21 +177,39 @@ bool App::init() {
         std::cerr << "Asset initialization failed: " << e.what() << std::endl;
         return false;
     }
-
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    glDepthFunc(GL_LEQUAL);
     return true;
 }
 
 void App::initAssets(void) {
-    // load shader program
+    /*
+     * Terrain init
+     */
+    bool isTransparent = false;
     shader = ShaderProgram("resources/shaders/tex.vert", "resources/shaders/tex.frag");
+    Model terrainModel(shader);
+    GLuint texture_terrain = textureInit("resources/textures/box_rgb888.png", isTransparent);
+    terrainModel.transparent = isTransparent;
+    for (auto& mesh : terrainModel.meshes) {
+        mesh.texture_id = texture_terrain;
+    }
+    scene.emplace("terrain", std::move(terrainModel));
+
+    /*
+     * Triangle init
+     */
+    isTransparent = false;
+    // load shader program
+    shader = ShaderProgram("resources/shaders/tex_1.vert", "resources/shaders/tex_1.frag");
 
     // load model
     Model triangleModel("resources/objects/triangle.obj", shader);
     triangleModel.origin = glm::vec3(0.0f, 0.0f, 0.0f);  // center the model
 
     // load texture
-    GLuint texture = textureInit("resources/textures/box_rgb888.png");
-
+    GLuint texture = textureInit("resources/textures/transparent4.png", isTransparent);
+    triangleModel.transparent = isTransparent;
     // assign all textures to all meshes
     for (auto& mesh : triangleModel.meshes) {
         mesh.texture_id = texture;
@@ -195,6 +217,7 @@ void App::initAssets(void) {
 
     // add to scene
     scene.emplace("triangle", std::move(triangleModel));
+
 }
 
 void App::updateProjection() {
@@ -204,7 +227,7 @@ void App::updateProjection() {
     );
 }
 
-GLuint App::textureInit(const std::filesystem::path& file_name)
+GLuint App::textureInit(const std::filesystem::path& file_name, bool& isTransparent)
 {
     cv::Mat image = cv::imread(file_name.string(), cv::IMREAD_UNCHANGED);  // Read with (potential) Alpha
     if (image.empty()) {
@@ -212,14 +235,14 @@ GLuint App::textureInit(const std::filesystem::path& file_name)
     }
 
     // or print warning, and generate synthetic image with checkerboard pattern 
-    // using OpenCV and use as a texture replacement 
+    // using OpenCV and use as a texture replacement
 
-    GLuint texture = gen_tex(image);
+    GLuint texture = gen_tex(image, isTransparent);
 
     return texture;
 }
 
-GLuint App::gen_tex(cv::Mat& image)
+GLuint App::gen_tex(cv::Mat& image, bool& isTransparent)
 {
     GLuint ID = 0;
     if (image.empty())
@@ -237,6 +260,15 @@ GLuint App::gen_tex(cv::Mat& image)
         glTextureSubImage2D(ID, 0, 0, 0, image.cols, image.rows, GL_BGR, GL_UNSIGNED_BYTE, image.data);
         break;
     case 4:
+        for (int y = 0; y < image.rows && !isTransparent; ++y) {
+            for (int x = 0; x < image.cols; ++x) {
+                cv::Vec4b pixel = image.at<cv::Vec4b>(y, x);
+                if (pixel[3] < 255) { // pixel[3] is alpha
+                    isTransparent = true;
+                    break;
+                }
+            }
+        }
         glTextureStorage2D(ID, 1, GL_RGBA8, image.cols, image.rows);
         glTextureSubImage2D(ID, 0, 0, 0, image.cols, image.rows, GL_BGRA, GL_UNSIGNED_BYTE, image.data);
         break;
@@ -258,8 +290,8 @@ GLuint App::gen_tex(cv::Mat& image)
 
 int App::run() {
     // Enable back-face culling to improve performance by not rendering polygons facing away from the camera
-    //glCullFace(GL_BACK);
-    //glEnable(GL_CULL_FACE);
+    // glCullFace(GL_BACK);
+    // glEnable(GL_CULL_FACE);
 
     // Initialize camera settings
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture mouse
@@ -291,15 +323,34 @@ int App::run() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Activate main shader and set uniforms
-        shader.activate();
-        shader.setUniform("uP_m", projectionMatrix);
-        shader.setUniform("uV_m", viewMatrix); // Updated every frame
+        // shader.activate();
+        // shader.setUniform("uP_m", projectionMatrix);
+        // shader.setUniform("uV_m", viewMatrix); // Updated every frame
+
+        std::vector<Model*> transparent;    // temporary, vector of pointers to transparent objects
+        transparent.reserve(scene.size());  // reserve size for all objects to avoid reallocation
+
 
         // Draw all models in the scene
-        for (auto& [name, model] : scene) {
-            model.draw(projectionMatrix, viewMatrix);
+        for (auto & [name, model] : scene) {
+            if (!model.transparent)
+                model.draw(projectionMatrix, viewMatrix);
+            else
+                transparent.emplace_back(&model); // save pointer for painters algorithm
         }
-
+        // SECOND PART - draw only transparent - painter's algorithm (sort by distance from camera, from far to near)
+        std::sort(transparent.begin(), transparent.end(), [&](Model const * a, Model const * b) {
+            glm::vec3 translation_a = glm::vec3(a->modelMatrix[3]);  // get 3 values from last column of model matrix = translation
+            glm::vec3 translation_b = glm::vec3(b->modelMatrix[3]);  // dtto for model B
+            return glm::distance(camera.position, translation_a) < glm::distance(camera.position, translation_b); // sort by distance from camera
+            });
+        glEnable(GL_BLEND);
+        glDepthMask(GL_FALSE);
+        for (auto p : transparent) {
+            p->draw(projectionMatrix, viewMatrix);
+        }
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
         // FPS calculation
         frameCount++;
         const double current_time = glfwGetTime();
