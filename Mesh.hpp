@@ -81,6 +81,8 @@ public:
         if (texture_id != 0) {
             glBindTextureUnit(0, texture_id);
             glUniform1i(glGetUniformLocation(shader.getID(), "tex0"), 0);
+        } else {
+            glBindTexture(GL_TEXTURE_2D, 0);
         }
 
         // set transformation matrices
