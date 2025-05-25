@@ -315,6 +315,10 @@ int App::run() {
         glm::vec3 moveOffset = camera.ProcessInput(window, deltaTime);
         camera.position += moveOffset;
 
+        // Update spotlight position/direction to follow camera
+        spotlight.position = camera.position;
+        spotlight.direction = camera.front;
+
         // Update view matrix from camera
         viewMatrix = camera.GetViewMatrix();
 

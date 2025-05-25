@@ -38,6 +38,7 @@
 #include "Model.hpp"  
 #include "Mesh.hpp"
 #include "camera.hpp"
+#include "Lights.hpp"
 
 // callbacks
 #include "gl_err_callback.h"
@@ -48,6 +49,11 @@ public:
     glm::mat4 projectionMatrix;  // projection matrix
     glm::mat4 viewMatrix;        // view matrix
     float fov;                   // field of view
+
+    // lights structs
+    DirectionalLight sun;
+    std::array<PointLight, 3> pointLights;
+    SpotLight spotlight;
 
     App();
     bool init();
