@@ -189,7 +189,8 @@ void App::initAssets(void) {
     bool isTransparent = false;
     shader = ShaderProgram("resources/shaders/tex.vert", "resources/shaders/tex.frag");
     Model terrainModel(shader);
-    GLuint texture_terrain = textureInit("resources/textures/box_rgb888.png", isTransparent);
+    GLuint texture_terrain = textureInit("resources/textures/tex_256.png", isTransparent);
+
     terrainModel.transparent = isTransparent;
     for (auto& mesh : terrainModel.meshes) {
         mesh.texture_id = texture_terrain;
