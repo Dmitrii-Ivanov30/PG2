@@ -1,4 +1,4 @@
-#include "lights.hpp"
+#include "Lights.hpp"
 
 DirectionalLight DirectionalLight::createDefault() {
     return DirectionalLight{

@@ -217,7 +217,8 @@ void App::initAssets(void) {
 
     // add to scene
     scene.emplace("triangle", std::move(triangleModel));
-
+    if (!initLights()) std::cout << "Failed to initialize lights\n";
+    else std::cout << "Initialized lights\n";
 }
 
 void App::updateProjection() {
@@ -288,6 +289,34 @@ GLuint App::gen_tex(cv::Mat& image, bool& isTransparent)
     return ID;
 }
 
+bool App::initLights() {
+    std::filesystem::path point_lights_path = "resources/lights/point_lights.lights";
+    std::ifstream file(point_lights_path);
+
+    if (!file.is_open()) {
+        std::cout << "Could not open light file: " << point_lights_path << std::endl;
+        return false;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#')
+            continue;
+        std::istringstream ss(line);
+        float x, y, z, r, g, b;
+
+        if (!(ss >> x >> y >> z >> r >> g >> b)) {
+            std::cerr << "Invalid light entry: " << line << std::endl;
+            continue; // or throw
+        }
+        PointLight point_light = PointLight::createDefault(glm::vec3(x, y, z), glm::vec3(r, g, b));
+        pointLights.push_back(point_light);
+
+    }
+    cameraLight = SpotLight::createDefault(camera.position, camera.front);
+    return true;
+}
+
 int App::run() {
     // Enable back-face culling to improve performance by not rendering polygons facing away from the camera
     // glCullFace(GL_BACK);
@@ -316,8 +345,8 @@ int App::run() {
         camera.position += moveOffset;
 
         // Update spotlight position/direction to follow camera
-        spotlight.position = camera.position;
-        spotlight.direction = camera.front;
+        cameraLight.position = camera.position;
+        cameraLight.direction = camera.front;
 
         // Update view matrix from camera
         viewMatrix = camera.GetViewMatrix();
