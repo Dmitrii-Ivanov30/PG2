@@ -1,42 +1,90 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <vector>
+#include <string>
+#include <GL/glew.h>
 
+// Base class for all lights
+struct LightSource {
+    glm::vec3 ambient{ 0.1f };
+    glm::vec3 diffuse{ 0.8f };
+    glm::vec3 specular{ 1.0f };
+    virtual void apply(GLuint shaderID, int index) const = 0;
+    virtual std::string getType() const = 0;
+    virtual ~LightSource() = default;
+};
 
-struct DirectionalLight {
-    glm::vec3 direction;
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-
+struct DirectionalLight : public LightSource {
+    glm::vec3 direction{ -0.2f, -1.0f, -0.3f };
+    DirectionalLight() = default;
+    DirectionalLight(const glm::vec3& dir,
+        const glm::vec3& amb,
+        const glm::vec3& diff,
+        const glm::vec3& spec)
+        : direction(dir)
+    {
+        ambient = amb;
+        diffuse = diff;
+        specular = spec;
+    }
     static DirectionalLight createDefault();
+    void apply(GLuint shaderID, int index) const override;
+    std::string getType() const override { return "directional"; }
 };
 
-struct PointLight {
-    glm::vec3 position;
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    float constant;
-    float linear;
-    float quadratic;
-
+struct PointLight : public LightSource {
+    glm::vec3 position{ 0.0f };
+    float constant{ 1.0f };
+    float linear{ 0.09f };
+    float quadratic{ 0.032f };
+    PointLight() = default;
+    PointLight(const glm::vec3& pos,
+        const glm::vec3& amb,
+        const glm::vec3& diff,
+        const glm::vec3& spec,
+        float c,
+        float l,
+        float q)
+        : position(pos), constant(c), linear(l), quadratic(q)
+    {
+        ambient = amb;
+        diffuse = diff;
+        specular = spec;
+    }
     static PointLight createDefault(const glm::vec3& position, const glm::vec3& color);
+    void apply(GLuint shaderID, int index) const override;
+    std::string getType() const override { return "point"; }
 };
 
-struct SpotLight {
-    glm::vec3 position;
-    glm::vec3 direction;
-    float cutOff;
-    float outerCutOff;
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    float constant;
-    float linear;
-    float quadratic;
-
+struct SpotLight : public LightSource {
+    glm::vec3 position{ 0.0f };
+    glm::vec3 direction{ 0.0f, 0.0f, -1.0f };
+    float cutOff{ glm::cos(glm::radians(12.5f)) };
+    float outerCutOff{ glm::cos(glm::radians(17.5f)) };
+    float constant{ 1.0f };
+    float linear{ 0.09f };
+    float quadratic{ 0.032f };
+    SpotLight() = default;
+    SpotLight(const glm::vec3& pos,
+        const glm::vec3& dir,
+        float cut, float outer,
+        const glm::vec3& amb,
+        const glm::vec3& diff,
+        const glm::vec3& spec,
+        float c,
+        float l,
+        float q)
+        : position(pos), direction(dir),
+        cutOff(cut), outerCutOff(outer),
+        constant(c), linear(l), quadratic(q)
+    {
+        ambient = amb;
+        diffuse = diff;
+        specular = spec;
+    }
     static SpotLight createDefault(const glm::vec3& pos, const glm::vec3& dir);
+    void apply(GLuint shaderID, int index) const override;
+    std::string getType() const override { return "spot"; }
 };
 
 struct Lights {

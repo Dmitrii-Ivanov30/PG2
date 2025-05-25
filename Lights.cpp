@@ -1,39 +1,75 @@
 #include "Lights.hpp"
+#include <glm/gtc/type_ptr.hpp>
 
+// Factory methods
 DirectionalLight DirectionalLight::createDefault() {
-    return DirectionalLight{
-        glm::vec3(-0.2f, -1.0f, -0.3f),  // direction
+    return DirectionalLight(
+        glm::vec3(-0.2f, -1.0f, -0.3f), // direction
         glm::vec3(0.2f),                 // ambient
         glm::vec3(0.5f),                 // diffuse
         glm::vec3(1.0f)                  // specular
-    };
+    );
 }
 
 PointLight PointLight::createDefault(const glm::vec3& position, const glm::vec3& color) {
-    return PointLight{
-        position,                   // position
-        color * 0.1f,              // ambient
-        color * 0.8f,              // diffuse
-        glm::vec3(1.0f),           // specular
-        1.0f,                      // constant
-        0.09f,                     // linear
-        0.032f                     // quadratic
-    };
+    return PointLight(
+        position,                // position
+        color * 0.1f,            // ambient
+        color * 0.8f,            // diffuse
+        glm::vec3(1.0f),         // specular
+        1.0f,                    // constant  (was 1.0f)
+        0.0f,                    // linear    (was 0.09f)
+        0.0f                     // quadratic (was 0.032f)
+    );
 }
 
 SpotLight SpotLight::createDefault(const glm::vec3& pos, const glm::vec3& dir) {
-    return SpotLight{
-        pos,                                    // position
-        dir,                                    // direction
-        glm::cos(glm::radians(12.5f)),         // cutOff
-        glm::cos(glm::radians(17.5f)),        // outerCutOff
-        glm::vec3(0.1f),                      // ambient
-        glm::vec3(0.8f),                      // diffuse
-        glm::vec3(1.0f),                      // specular
-        1.0f,                                 // constant
-        0.09f,                                // linear
-        0.032f                                // quadratic
-    };
+    return SpotLight(
+        pos,                                  // position
+        dir,                                  // direction
+        glm::cos(glm::radians(30.0f)),        // cutOff
+        glm::cos(glm::radians(40.0f)),        // outerCutOff
+        glm::vec3(0.2f, 0.0f, 0.0f),          // ambient
+        glm::vec3(1.0f, 0.0f, 0.0f),          // diffuse
+        glm::vec3(1.0f, 0.0f, 0.0f),          // specular
+        1.0f,                                 // constant  (was 1.0f)
+        0.0f,                                 // linear    (was 0.09f)
+        0.0f                                  // quadratic (was 0.032f)
+    );
+}
+
+// Apply methods for each light type
+void DirectionalLight::apply(GLuint shaderID, int index) const {
+    std::string prefix = "dirLights[" + std::to_string(index) + "]";
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".direction").c_str()), 1, glm::value_ptr(direction));
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".ambient").c_str()), 1, glm::value_ptr(ambient));
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".diffuse").c_str()), 1, glm::value_ptr(diffuse));
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".specular").c_str()), 1, glm::value_ptr(specular));
+}
+
+void PointLight::apply(GLuint shaderID, int index) const {
+    std::string prefix = "pointLights[" + std::to_string(index) + "]";
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".position").c_str()), 1, glm::value_ptr(position));
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".ambient").c_str()), 1, glm::value_ptr(ambient));
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".diffuse").c_str()), 1, glm::value_ptr(diffuse));
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".specular").c_str()), 1, glm::value_ptr(specular));
+    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".constant").c_str()), constant);
+    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".linear").c_str()), linear);
+    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".quadratic").c_str()), quadratic);
+}
+
+void SpotLight::apply(GLuint shaderID, int index) const {
+    std::string prefix = "spotLights[" + std::to_string(index) + "]";
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".position").c_str()), 1, glm::value_ptr(position));
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".direction").c_str()), 1, glm::value_ptr(direction));
+    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".cutOff").c_str()), cutOff);
+    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".outerCutOff").c_str()), outerCutOff);
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".ambient").c_str()), 1, glm::value_ptr(ambient));
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".diffuse").c_str()), 1, glm::value_ptr(diffuse));
+    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".specular").c_str()), 1, glm::value_ptr(specular));
+    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".constant").c_str()), constant);
+    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".linear").c_str()), linear);
+    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".quadratic").c_str()), quadratic);
 }
 
 void Lights::initDirectionalLight() {

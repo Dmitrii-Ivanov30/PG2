@@ -199,7 +199,7 @@ void App::initAssets(void) {
     /*
      * Triangle init
      */
-    isTransparent = false;
+    isTransparent = true;
     // load shader program
     shader = ShaderProgram("resources/shaders/tex_1.vert", "resources/shaders/tex_1.frag");
 
@@ -358,6 +358,10 @@ int App::run() {
     double deltaTime = 0.0;
     int frameCount = 0;
 
+    // Print number of lights before drawing
+    std::cout << "numPointLights = " << lights.pointLights.size()
+        << ", numSpotLights = " << lights.spotLights.size() << std::endl;
+
     while (!glfwWindowShouldClose(window)) {
         // Calculate delta time
         double currentFrameTime = glfwGetTime();
@@ -462,7 +466,7 @@ void App::mouse_clicked_callback(GLFWwindow* window, int button, int action, int
 }
 
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    std::cout << "Activate key_callback: Key pressed: " << key << std::endl;
+    //std::cout << "Activate key_callback: Key pressed: " << key << std::endl;
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
     if ((action == GLFW_PRESS) || (action == GLFW_REPEAT)) {
         switch (key) {
@@ -480,7 +484,7 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
 }
 
 void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    std::cout << "Activate cursor_position_callback." << std::endl;
+    //std::cout << "Activate cursor_position_callback." << std::endl;
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
 
     if (app->firstMouse) {
