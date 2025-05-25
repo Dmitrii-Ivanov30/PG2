@@ -68,8 +68,10 @@ public:
 
 private:
 #include <tuple>
-    constexpr uint MAX_POINT_LIGHTS = 15;
-    constexpr uint MAX_SPOT_LIGHTS = 15;
+    static constexpr uint MAX_POINT_LIGHTS = 15;
+    static constexpr uint MAX_SPOT_LIGHTS = 15;
+    int mesh_step_size = 200; // Controls mesh triangle density/detail
+
     void loadModel(const std::filesystem::path& path) {
         // load mesh (all meshes) of the model, (in the future: load material of each mesh, load textures...)
         // call LoadOBJFile, LoadMTLFile (if exist), process data, create mesh and set its properties
@@ -116,7 +118,7 @@ private:
             throw std::runtime_error("No heightmap in file: resources/textures/heights.png");
         }
         HeightMap map{};
-        auto [vertices, indices] = map.GenHeightMap(terrain, 50);
+        auto [vertices, indices] = map.GenHeightMap(terrain, mesh_step_size);
         Mesh mapMesh(GL_TRIANGLES, shader, vertices, indices, origin, orientation);
         meshes.emplace_back(mapMesh);
         name = "Terrain";

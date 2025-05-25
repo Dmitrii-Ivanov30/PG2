@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <string>
 #include <vector>
@@ -75,9 +75,34 @@ public:
     };
 
 
+    // Helper to apply all lights to the shader
+    static void applyLights(GLuint shaderID,
+        const DirectionalLight& dirLight,
+        const std::vector<SpotLight>& spotLights,
+        const std::vector<PointLight>& pointLights)
+    {
+        // Directional light
+        dirLight.apply(shaderID, 0);
+
+        // Spotlights
+        int spotIndex = 0;
+        for (const auto& spot : spotLights)
+            spot.apply(shaderID, spotIndex++);
+
+        glUniform1i(glGetUniformLocation(shaderID, "numSpotLights"), spotIndex);
+
+        // Point lights
+        int pointIndex = 0;
+        for (const auto& point : pointLights)
+            point.apply(shaderID, pointIndex++);
+
+        glUniform1i(glGetUniformLocation(shaderID, "numPointLights"), pointIndex);
+    }
+
+
     void draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model,
         const DirectionalLight& dirLight, const std::vector<SpotLight>& spotLights,
-        const std::vector<PointLight>& pointLight) {
+        const std::vector<PointLight>& pointLights) {
         shader.activate();
 
         // Set texture if available
@@ -97,6 +122,9 @@ public:
         if (uProj != -1) glUniformMatrix4fv(uProj, 1, GL_FALSE, &projection[0][0]);
         if (uView != -1) glUniformMatrix4fv(uView, 1, GL_FALSE, &view[0][0]);
         if (uModel != -1) glUniformMatrix4fv(uModel, 1, GL_FALSE, &model[0][0]);
+
+        // ****** APPLY LIGHTS HERE ******
+        applyLights(shader.getID(), dirLight, spotLights, pointLights);
 
         // draw mesh
         glBindVertexArray(VAO);
