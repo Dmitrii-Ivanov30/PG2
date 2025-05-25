@@ -13,6 +13,8 @@
 #include <unordered_map>  
 #include <nlohmann/json.hpp>  
 #include <opencv2/opencv.hpp>
+#include <string>
+#include <cstring>
 
 // OpenGL Extension Wrangler: allow all multiplatform GL functions  
 #include <GL/glew.h>  
@@ -50,10 +52,8 @@ public:
     glm::mat4 viewMatrix;        // view matrix
     float fov;                   // field of view
 
-    // lights structs
-    DirectionalLight sun;
-    std::array<PointLight, 3> pointLights;
-    SpotLight spotlight;
+    // lights struct
+    Lights lights;
 
     App();
     bool init();
@@ -61,6 +61,7 @@ public:
     void initAssets();
     GLuint textureInit(const std::filesystem::path& file_name, bool& isTransparent);
     GLuint gen_tex(cv::Mat& image, bool& isTransparent);
+    void initLights();
     void updateProjection();
 
     static void mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods);

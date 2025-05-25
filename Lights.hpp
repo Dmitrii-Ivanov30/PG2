@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
-#include <array>
+#include <vector>
+
 
 struct DirectionalLight {
     glm::vec3 direction;
@@ -38,8 +39,14 @@ struct SpotLight {
     static SpotLight createDefault(const glm::vec3& pos, const glm::vec3& dir);
 };
 
-namespace Lights {
-    void initDirectionalLight(DirectionalLight& light);
-    void initPointLights(std::array<PointLight, 3>& pointLights);
-    void initSpotLight(SpotLight& spotLight, const glm::vec3& pos, const glm::vec3& dir);
-}
+struct Lights {
+    DirectionalLight sun;
+    std::vector<SpotLight> spotLights;
+    SpotLight cameraLight;
+    std::vector<PointLight> pointLights;
+
+    void initDirectionalLight();
+    void initPointLight(const glm::vec3& position, const glm::vec3& color);
+    void initSpotLight(const glm::vec3& pos, const glm::vec3& dir);
+    void initCameraLight(const glm::vec3& pos, const glm::vec3& dir);
+};

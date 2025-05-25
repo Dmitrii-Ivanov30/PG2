@@ -218,6 +218,9 @@ void App::initAssets(void) {
     // add to scene
     scene.emplace("triangle", std::move(triangleModel));
 
+    // initialize lights
+    initLights();
+
 }
 
 void App::updateProjection() {
@@ -288,6 +291,56 @@ GLuint App::gen_tex(cv::Mat& image, bool& isTransparent)
     return ID;
 }
 
+void App::initLights() {
+    // init point lights from the file
+    std::filesystem::path point_lights_path = "resources/lights/point_lights.lights";
+    std::ifstream file_point_light(point_lights_path);
+
+    if (!file_point_light.is_open()) {
+        std::cout << "Could not open point light file: " << point_lights_path << std::endl;
+    }
+
+    std::string line;
+    while (std::getline(file_point_light, line)) {
+        if (line.empty() || line[0] == '#')
+            continue;
+        std::istringstream ss(line);
+        float x, y, z, r, g, b;
+
+        if (!(ss >> x >> y >> z >> r >> g >> b)) {
+            std::cerr << "Invalid point light entry: " << line << std::endl;
+            continue; // or throw
+        }
+        lights.initPointLight(glm::vec3(x, y, z), glm::vec3(r, g, b));
+    }
+    file_point_light.close();
+
+    // init spot lights from the file
+    std::filesystem::path spot_lights_path = "resources/lights/point_lights.lights";
+    std::ifstream file_spot_light(spot_lights_path);
+
+    if (!file_spot_light.is_open()) {
+        std::cout << "Could not open spot light file: " << point_lights_path << std::endl;
+    }
+
+    while (std::getline(file_spot_light, line)) {
+        if (line.empty() || line[0] == '#')
+            continue;
+        std::istringstream ss(line);
+        float posX, posY, posZ, dirX, dirY, dirZ;
+
+        if (!(ss >> posX >> posY >> posZ >> dirX >> dirY >> dirZ)) {
+            std::cerr << "Invalid spot light entry: " << line << std::endl;
+        }
+        lights.initSpotLight(glm::vec3(posX, posY, posZ),
+            glm::vec3(dirX, dirY, dirZ));
+    }
+    file_spot_light.close();
+
+    lights.initCameraLight(camera.position, camera.front);
+    lights.initDirectionalLight();
+}
+
 int App::run() {
     // Enable back-face culling to improve performance by not rendering polygons facing away from the camera
     // glCullFace(GL_BACK);
@@ -316,8 +369,8 @@ int App::run() {
         camera.position += moveOffset;
 
         // Update spotlight position/direction to follow camera
-        spotlight.position = camera.position;
-        spotlight.direction = camera.front;
+        lights.cameraLight.position = camera.position;
+        lights.cameraLight.direction = camera.front;
 
         // Update view matrix from camera
         viewMatrix = camera.GetViewMatrix();
@@ -338,7 +391,7 @@ int App::run() {
         // Draw all models in the scene
         for (auto & [name, model] : scene) {
             if (!model.transparent)
-                model.draw(projectionMatrix, viewMatrix);
+                model.draw(projectionMatrix, viewMatrix, lights);
             else
                 transparent.emplace_back(&model); // save pointer for painters algorithm
         }
@@ -351,7 +404,7 @@ int App::run() {
         glEnable(GL_BLEND);
         glDepthMask(GL_FALSE);
         for (auto p : transparent) {
-            p->draw(projectionMatrix, viewMatrix);
+            p->draw(projectionMatrix, viewMatrix, lights);
         }
         glDisable(GL_BLEND);
         glDepthMask(GL_TRUE);

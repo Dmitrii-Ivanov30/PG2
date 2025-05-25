@@ -1,4 +1,4 @@
-#include "lights.hpp"
+#include "Lights.hpp"
 
 DirectionalLight DirectionalLight::createDefault() {
     return DirectionalLight{
@@ -36,27 +36,18 @@ SpotLight SpotLight::createDefault(const glm::vec3& pos, const glm::vec3& dir) {
     };
 }
 
-namespace Lights {
-    void initDirectionalLight(DirectionalLight& light) {
-        light = DirectionalLight::createDefault();
-    }
+void Lights::initDirectionalLight() {
+    sun = DirectionalLight::createDefault();
+}
 
-    void initPointLights(std::array<PointLight, 3>& pointLights) {
-        pointLights[0] = PointLight::createDefault(
-            glm::vec3(2.0f, 0.5f, 2.0f),
-            glm::vec3(1.0f, 1.0f, 0.0f) // Yellow
-        );
-        pointLights[1] = PointLight::createDefault(
-            glm::vec3(-2.0f, 1.0f, -1.0f),
-            glm::vec3(1.0f, 0.0f, 0.0f) // Red
-        );
-        pointLights[2] = PointLight::createDefault(
-            glm::vec3(0.0f, 1.0f, -3.0f),
-            glm::vec3(0.0f, 1.0f, 0.0f) // Green
-        );
-    }
+void Lights::initPointLight(const glm::vec3& position, const glm::vec3& color) {
+    pointLights.emplace_back(PointLight::createDefault(position, color));
+}
 
-    void initSpotLight(SpotLight& spotLight, const glm::vec3& pos, const glm::vec3& dir) {
-        spotLight = SpotLight::createDefault(pos, dir);
-    }
+void Lights::initSpotLight(const glm::vec3& pos, const glm::vec3& dir) {
+    spotLights.emplace_back(SpotLight::createDefault(pos, dir));
+}
+
+void Lights::initCameraLight(const glm::vec3& pos, const glm::vec3& dir) {
+    cameraLight = SpotLight::createDefault(pos, dir);
 }
