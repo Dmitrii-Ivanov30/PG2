@@ -52,11 +52,8 @@ public:
     glm::mat4 viewMatrix;        // view matrix
     float fov;                   // field of view
 
-    // lights structs
-    DirectionalLight sun;
-    std::vector<PointLight> pointLights;
-    std::vector<SpotLight> spotlights;
-    SpotLight cameraLight;
+    // lights struct
+    Lights lights;
 
     App();
     bool init();
@@ -64,7 +61,7 @@ public:
     void initAssets();
     GLuint textureInit(const std::filesystem::path& file_name, bool& isTransparent);
     GLuint gen_tex(cv::Mat& image, bool& isTransparent);
-    bool initLights();
+    void initLights();
     void updateProjection();
 
     static void mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods);

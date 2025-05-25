@@ -9,6 +9,7 @@
 
 #include "assets.hpp"
 #include "ShaderProgram.hpp"
+#include "Lights.hpp"
 
 class Mesh {
 public:
@@ -74,7 +75,9 @@ public:
     };
 
 
-    void draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model) {
+    void draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model,
+        const DirectionalLight& dirLight, const std::vector<SpotLight>& spotLights,
+        const std::vector<PointLight>& pointLight) {
         shader.activate();
 
         // Set texture if available
@@ -100,6 +103,8 @@ public:
         glDrawElements(primitive_type, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
+
+
 
 
     void clear(void) {
