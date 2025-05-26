@@ -103,7 +103,7 @@ bool App::init() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
 
-    // assume ALL objects are non-transparent 
+    // assume ALL objects are non-transparent
     glEnable(GL_CULL_FACE);
 
     // request debug context
@@ -395,8 +395,10 @@ int App::run() {
 
         // Draw all models in the scene
         for (auto & [name, model] : scene) {
-            if (!model.transparent)
+            if (!model.transparent) {
                 model.draw(projectionMatrix, viewMatrix, lights);
+                // std::cout << "Rendering non transparent object: " << name << std::endl;
+            }
             else
                 transparent.emplace_back(&model); // save pointer for painters algorithm
         }
@@ -409,6 +411,10 @@ int App::run() {
         glEnable(GL_BLEND);
         glDepthMask(GL_FALSE);
         for (auto p : transparent) {
+            // std::cout << "Rendering transparent object: " << p->name << std::endl;
+            // glm::vec3 distance = p->closestPointOnAABB(camera.position);
+            // std::cout << "Model's distance to camera. X: " << distance.x
+            // << ", Y:" << distance.y << ", Z: " << distance.z << std::endl;
             p->draw(projectionMatrix, viewMatrix, lights);
         }
         glDisable(GL_BLEND);
