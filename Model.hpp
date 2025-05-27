@@ -41,13 +41,17 @@ public:
         origin += glm::vec3(3,0,0) * delta_t; // s = s0 + v*dt
     }
 
-    void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights) {
+    void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights, const glm::vec3* position = nullptr) {
         modelMatrix = glm::mat4(1.0f); // identity matrix
-        modelMatrix = glm::translate(modelMatrix, origin);
+        if (position == nullptr) {
+          position = &origin; // use model's origin if no position provided, else the position from the argument
+        }
+        modelMatrix = glm::translate(modelMatrix, *position);
         modelMatrix = glm::rotate(modelMatrix, orientation.x, glm::vec3(1.0f, 0.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, orientation.y, glm::vec3(0.0f, 1.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, orientation.z, glm::vec3(0.0f, 0.0f, 1.0f));
         modelMatrix = glm::scale(modelMatrix, scale);
+
         // checks the sizes of spot and point lights
         // sorts them out and takes the max amount if the size exceeds the limit
         std::vector<PointLight> closestPointLights;
