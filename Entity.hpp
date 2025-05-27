@@ -12,7 +12,7 @@ public:
 
     float yaw = -90.0f, pitch = 0.0f;
     float movementSpeed = 10.0f;
-    float drag = 0.1f;
+    float drag = 1.0f;
     float gravity = -9.81f;
     bool isGrounded = true;
 
@@ -46,9 +46,17 @@ public:
             isGrounded = false;
         }
         acceleration = glm::vec3(0.0f);
+        if (model) model->setPos(position);
     }
 
     void applyForce(const glm::vec3& force) { acceleration += force; }
+
+    void setSpeed(glm::vec3 speed) { velocity = speed; }
+
+    void updatePos(const float x = 0, const float y = 0, const float z = 0) {
+        position += glm::vec3(x, y, z);
+        if (model) model->setPos(position);
+    }
 
     void jump(float strength) {
         if (isGrounded) { velocity.y = strength; isGrounded = false; }

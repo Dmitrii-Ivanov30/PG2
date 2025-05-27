@@ -68,7 +68,6 @@ public:
     GLuint gen_tex(cv::Mat& image, bool& isTransparent);
     void initLights();
     void updateProjection();
-    void drawSunBillboard(const glm::mat4& projection, const glm::mat4& view);
     void toggleFullscreen();
 
     static void mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods);
