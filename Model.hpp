@@ -22,6 +22,8 @@ public:
     glm::vec3 scale{ 1.0f };
     ShaderProgram shader;
     bool transparent {false};
+    glm::vec3 AABBMin{FLT_MAX};
+    glm::vec3 AABBMax{-FLT_MAX};
 
     glm::mat4 modelMatrix{ 1.0f };  // model matrix for transformations
 
@@ -40,7 +42,7 @@ public:
     }
 
     void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights) {
-
+        modelMatrix = glm::mat4(1.0f); // identity matrix
         modelMatrix = glm::translate(modelMatrix, origin);
         modelMatrix = glm::rotate(modelMatrix, orientation.x, glm::vec3(1.0f, 0.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, orientation.y, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -65,13 +67,17 @@ public:
         }
     }
 
+    glm::vec3 closestPointOnAABB(const glm::vec3& point) {
+        return glm::clamp(point, AABBMin, AABBMax);
+    }
+
 
 private:
 #include <tuple>
     static constexpr uint MAX_POINT_LIGHTS = 15;
     static constexpr uint MAX_SPOT_LIGHTS = 15;
-    int mesh_step_size = 5; // Controls mesh triangle density/detail
-    float height_scale = 5.0f; // Controls height exaggeration
+    int mesh_step_size = 30; // Controls mesh triangle density/detail
+    float height_scale = 0.5f; // Controls height exaggeration
 
 
     void loadModel(const std::filesystem::path& path) {
@@ -88,7 +94,6 @@ private:
             std::cerr << "Failed to load model: " << path << std::endl;
             return;
         }
-
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
 
@@ -100,7 +105,8 @@ private:
             if (i < normals.size()) v.normal = normals[i];
             vertices.push_back(v);
             indices.push_back(static_cast<GLuint>(i));
-
+            AABBMax = glm::max(AABBMax, positions[i]);
+            AABBMin = glm::min(AABBMin, positions[i]);
 
             // create Mesh and store it
             meshes.emplace_back(GL_TRIANGLES, shader, vertices, indices, origin, orientation);
@@ -108,8 +114,11 @@ private:
             // set model name based on the filename stem
             name = path.stem().string();
         }
+        // origin = glm::vec3((min.x + max.x) / 2.0f, min.y, (min.z + max.z) / 2.0f);
 
         std::cout << "Loaded model: " << path << "\n"
+            << "Origin: (" << origin.x << ", " << origin.y
+            << ", " << origin.z << ")\n"
             << "Vertices: " << vertices.size() << "\n"
             << "Indices: " << indices.size() << "\n"
             << "Meshes: " << meshes.size() << std::endl;
@@ -120,9 +129,10 @@ private:
             throw std::runtime_error("No heightmap in file: resources/textures/heights.png");
         }
         HeightMap map{};
-        auto [vertices, indices] = map.GenHeightMap(terrain, mesh_step_size, height_scale);
-        Mesh mapMesh(GL_TRIANGLES, shader, vertices, indices, origin, orientation);
-        meshes.emplace_back(mapMesh);
+        auto terrainMeshes = map.GenHeightMap(terrain, mesh_step_size, height_scale, shader);
+        for (auto& mesh : terrainMeshes) {
+            meshes.push_back(mesh);
+        }
         name = "Terrain";
         std::cout << "Loaded heightmap: resources/textures/heights.png" << std::endl;
     }
