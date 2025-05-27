@@ -18,14 +18,14 @@ class HeightMap {
     // choose subtexture based on height
     glm::vec2 get_subtex_by_height(float height) {
         if (height > 0.9)
-            return get_subtex_st(2, 11); // snow
+            return get_subtex_st(0, 4); // snow
         if (height > 0.8)
-            return get_subtex_st(3, 11); // ice
+            return get_subtex_st(5, 2); // black stone
         if (height > 0.5)
-            return get_subtex_st(0, 14); // rock
+            return get_subtex_st(0, 1); // rock
         if (height > 0.3)
-            return get_subtex_st(2, 15); // soil
-        return get_subtex_st(0, 11); // grass
+            return get_subtex_st(2, 0); // soil
+        return get_subtex_st(0, 0); // grass
     }
 public:
     HeightMap() {};
@@ -191,6 +191,29 @@ public:
 
         return meshes;
     }
+
+    // x, z: world-space coordinates
+    float getWorldHeightAt(float x, float z, const cv::Mat& hmap, float heightScale) {
+        // Convert world x,z to heightmap pixel coordinates
+        int mesh_step_size = 30; // whatever you use in mesh generation (e.g. 30)
+        float x_offset = (hmap.cols - mesh_step_size) / 2.0f;
+        float z_offset = (hmap.rows - mesh_step_size) / 2.0f;
+
+        // Convert to image coordinates
+        int img_x = static_cast<int>(x * mesh_step_size + x_offset);
+        int img_z = static_cast<int>(z * mesh_step_size + z_offset);
+
+        // Clamp to valid range
+        img_x = std::max(0, std::min(img_x, hmap.cols - 1));
+        img_z = std::max(0, std::min(img_z, hmap.rows - 1));
+
+        double minVal, maxVal;
+        cv::minMaxLoc(hmap, &minVal, &maxVal);
+        double denom = (maxVal - minVal > 1e-5) ? (maxVal - minVal) : 1.0;
+        float h = (hmap.at<uchar>(cv::Point(img_x, img_z)) - minVal) / denom;
+        float ch = (h - 0.5f) * 2.0f;
+        return ch * heightScale;
+    }
 };
 
-#endif //HEIGHTMAP_H
+#endif HEIGHTMAP_H

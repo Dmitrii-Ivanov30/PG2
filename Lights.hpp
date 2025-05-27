@@ -96,5 +96,4 @@ struct Lights {
     void initDirectionalLight();
     void initPointLight(const glm::vec3& position, const glm::vec3& color);
     void initSpotLight(const glm::vec3& pos, const glm::vec3& dir);
-    void initCameraLight(const glm::vec3& pos, const glm::vec3& dir);
 };

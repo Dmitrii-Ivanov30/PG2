@@ -19,7 +19,7 @@ public:
     std::string name;
     glm::vec3 origin{};
     glm::vec3 orientation{};
-    glm::vec3 scale{ 1.0f };
+    glm::vec3 scale{ 1.0 };
     ShaderProgram shader;
     bool transparent {false};
     glm::vec3 AABBMin{FLT_MAX};
@@ -41,16 +41,19 @@ public:
         origin += glm::vec3(3,0,0) * delta_t; // s = s0 + v*dt
     }
 
-    void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights, const glm::vec3* position = nullptr) {
+    void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights, const glm::vec3* positionPtr = nullptr, glm::vec3* scalePtr = nullptr) {
         modelMatrix = glm::mat4(1.0f); // identity matrix
-        if (position == nullptr) {
-          position = &origin; // use model's origin if no position provided, else the position from the argument
+        if (positionPtr == nullptr) {
+           positionPtr = &origin; // use model's origin if no position provided, else the position from the argument
         }
-        modelMatrix = glm::translate(modelMatrix, *position);
+        modelMatrix = glm::translate(modelMatrix, *positionPtr);
         modelMatrix = glm::rotate(modelMatrix, orientation.x, glm::vec3(1.0f, 0.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, orientation.y, glm::vec3(0.0f, 1.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, orientation.z, glm::vec3(0.0f, 0.0f, 1.0f));
-        modelMatrix = glm::scale(modelMatrix, scale);
+        if (scalePtr == nullptr) {
+            scalePtr = &scale; // use model's scale if no option scale provided, else the scale from the argument
+        }
+        modelMatrix = glm::scale(modelMatrix, *scalePtr);
 
         // checks the sizes of spot and point lights
         // sorts them out and takes the max amount if the size exceeds the limit
@@ -111,13 +114,13 @@ private:
             indices.push_back(static_cast<GLuint>(i));
             AABBMax = glm::max(AABBMax, positions[i]);
             AABBMin = glm::min(AABBMin, positions[i]);
-
-            // create Mesh and store it
-            meshes.emplace_back(GL_TRIANGLES, shader, vertices, indices, origin, orientation);
-
-            // set model name based on the filename stem
-            name = path.stem().string();
         }
+
+        // create Mesh and store it
+        meshes.emplace_back(GL_TRIANGLES, shader, vertices, indices, origin, orientation);
+
+        // set model name based on the filename stem
+        name = path.stem().string();
         // origin = glm::vec3((min.x + max.x) / 2.0f, min.y, (min.z + max.z) / 2.0f);
 
         std::cout << "Loaded model: " << path << "\n"

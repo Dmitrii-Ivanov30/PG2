@@ -4,7 +4,7 @@
 // Factory methods
 DirectionalLight DirectionalLight::createDefault() {
     return DirectionalLight(
-        glm::vec3(-0.2f, -1.0f, -0.3f), // direction
+        glm::vec3(-0.5f, -1.0f, -0.2f), // direction
         glm::vec3(0.2f),                 // ambient
         glm::vec3(0.5f),                 // diffuse
         glm::vec3(1.0f)                  // specular
@@ -17,9 +17,9 @@ PointLight PointLight::createDefault(const glm::vec3& position, const glm::vec3&
         color * 0.1f,            // ambient
         color * 0.8f,            // diffuse
         glm::vec3(1.0f),         // specular
-        1.0f,                    // constant  (was 1.0f)
-        0.0f,                    // linear    (was 0.09f)
-        0.0f                     // quadratic (was 0.032f)
+        1.0f,                    // constant  
+        0.0f,                    // linear    
+        0.0f                     // quadratic 
     );
 }
 
@@ -27,14 +27,14 @@ SpotLight SpotLight::createDefault(const glm::vec3& pos, const glm::vec3& dir) {
     return SpotLight(
         pos,                                  // position
         dir,                                  // direction
-        glm::cos(glm::radians(30.0f)),        // cutOff
-        glm::cos(glm::radians(40.0f)),        // outerCutOff
+        glm::cos(glm::radians(15.0f)),        // cutOff
+        glm::cos(glm::radians(30.0f)),        // outerCutOff
         glm::vec3(0.2f, 0.0f, 0.0f),          // ambient
         glm::vec3(1.0f, 0.0f, 0.0f),          // diffuse
         glm::vec3(1.0f, 0.0f, 0.0f),          // specular
-        1.0f,                                 // constant  (was 1.0f)
-        0.0f,                                 // linear    (was 0.09f)
-        0.0f                                  // quadratic (was 0.032f)
+        1.0f,                                 // constant 
+        0.0f,                                 // linear    
+        0.0f                                  // quadratic 
     );
 }
 
@@ -82,8 +82,4 @@ void Lights::initPointLight(const glm::vec3& position, const glm::vec3& color) {
 
 void Lights::initSpotLight(const glm::vec3& pos, const glm::vec3& dir) {
     spotLights.emplace_back(SpotLight::createDefault(pos, dir));
-}
-
-void Lights::initCameraLight(const glm::vec3& pos, const glm::vec3& dir) {
-    cameraLight = SpotLight::createDefault(pos, dir);
 }

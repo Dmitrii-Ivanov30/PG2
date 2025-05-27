@@ -68,10 +68,13 @@ public:
     GLuint gen_tex(cv::Mat& image, bool& isTransparent);
     void initLights();
     void updateProjection();
+    void drawSunBillboard(const glm::mat4& projection, const glm::mat4& view);
+    void toggleFullscreen();
 
     static void mouse_clicked_callback(GLFWwindow* window, int button, int action, int mods);
     static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
+    static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
     ~App();
 
@@ -85,11 +88,20 @@ private:
     // default window settings
     int windowWidth;
     int windowHeight;
+    GLFWmonitor* savedMonitor = nullptr;
+    int savedX = 0, savedY = 0, savedWidth = 0, savedHeight = 0;
+    bool isFullscreen = false;
+
     bool AA;
     int AASamples;
     std::string windowTitle{ "OpenGL Scene" };
     bool vsync;                  // V-Sync state
     glm::vec4 currentColor;      // RGBA format  
+
+    // sun settings
+    GLuint sunVAO = 0, sunVBO = 0;
+    ShaderProgram sunShader;
+    GLuint sunTexture = 0;
 
     Camera camera{ glm::vec3(0.0f, 0.0f, 3.0f) }; // camera with initial position
     double cursorLastX = 0.0;                     // last X mouse position

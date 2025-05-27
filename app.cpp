@@ -167,6 +167,7 @@ bool App::init() {
     glfwSetMouseButtonCallback(window, mouse_clicked_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback); // mouse movement
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // init resources
     try {
@@ -217,7 +218,7 @@ void App::initAssets(void) {
     }
 
     // add to scene
-    scene.emplace("triangle", std::move(triangleModel));
+    //scene.emplace("triangle", std::move(triangleModel));
 
     /*
      * Entities and particles init
@@ -225,16 +226,23 @@ void App::initAssets(void) {
     // Load the bot model from an OBJ file
     scene.emplace("bot", Model("resources/objects/triangle.obj", shader));
     auto botModelPtr = &scene.at("bot"); // store pointer for entity
-
     // Create a bot entity at position (0,5,0) with WalkInCircle behavior
-    Entity bot(glm::vec3(0.0f, 5.0f, 0.0f), botModelPtr);
+    Entity bot(glm::vec3(0.0f, 10.0f, 0.0f), botModelPtr);
     bot.behaviors.push_back(Behaviors::WalkInCircle(glm::vec3(10, 0, 10), 50.0f, 10.0f));
     entities.push_back(bot);
+
+    //// Load the bot model from an OBJ file
+    //scene.emplace("bot2", Model("resources/objects/triangle.obj", shader));
+    //auto botModelPtr2 = &scene.at("bot2"); // store pointer for entity
+    //// Create a bot entity at position (0,5,0) with WalkInCircle behavior
+    //Entity bot2(glm::vec3(5.0f, 5.0f, 5.0f), botModelPtr2);
+    //bot2.behaviors.push_back(Behaviors::Bob());
+    //entities.push_back(bot2);
 
 	// init particles shader
     particleShader = ShaderProgram("resources/shaders/particle.vert", "resources/shaders/particle.frag");
 
-    // initialize lights
+    // initialize lights 
     initLights();
 
 }
@@ -353,7 +361,6 @@ void App::initLights() {
     }
     file_spot_light.close();
 
-    lights.initCameraLight(camera.position, camera.front);
     lights.initDirectionalLight();
 }
 
@@ -387,10 +394,6 @@ int App::run() {
         glm::vec3 moveOffset = camera.ProcessInput(window, deltaTime);
         camera.position += moveOffset;
 
-        // Update spotlight position/direction to follow camera
-        lights.cameraLight.position = camera.position;
-        lights.cameraLight.direction = camera.front;
-
         // Update view matrix from camera
         viewMatrix = camera.GetViewMatrix();
 
@@ -416,6 +419,10 @@ int App::run() {
 
         }
         Particles::update(static_cast<float>(deltaTime));
+
+        //glm::vec3 sunDir = glm::normalize(lights.sun.direction); // from DirectionalLight
+        //shader.activate();
+        //shader.setUniform("light_dir", sunDir);
 
         /*
          *  --- SCENE RENDERING ---
@@ -483,6 +490,36 @@ int App::run() {
     return EXIT_SUCCESS;
 }
 
+void App::toggleFullscreen() {
+    if (!window) return;
+
+    if (!isFullscreen) {
+        // Save current window position and size
+        glfwGetWindowPos(window, &savedX, &savedY);
+        glfwGetWindowSize(window, &savedWidth, &savedHeight);
+
+        // Get primary monitor and its video mode
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+        // Switch to fullscreen
+        glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+        isFullscreen = true;
+    }
+    else {
+        // Restore to windowed mode
+        glfwSetWindowMonitor(window, nullptr, savedX, savedY, savedWidth, savedHeight, 0);
+        isFullscreen = false;
+    }
+    
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    windowWidth = width;
+    windowHeight = height;
+    glViewport(0, 0, width, height);
+    updateProjection();
+}
+
 App::~App() {
     // cleanup models and shaders
     scene.clear();
@@ -526,6 +563,9 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
             app->vsync = !app->vsync;
             glfwSwapInterval(app->vsync ? 1 : 0);
             break;
+        case GLFW_KEY_F11:
+            app->toggleFullscreen();
+            break;
         default:
             break;
         }
@@ -550,5 +590,15 @@ void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
     app->cursorLastY = ypos;
 
     app->camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void App::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    if (app) {
+        app->windowWidth = width;
+        app->windowHeight = height;
+        app->updateProjection();
+    }
 }
 // -----------------------------------------
