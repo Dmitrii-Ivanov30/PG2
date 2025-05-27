@@ -21,9 +21,12 @@ public:
     glm::vec3 orientation{};
     glm::vec3 scale{ 1.0f };
     ShaderProgram shader;
-    bool transparent {false};
-    glm::vec3 AABBMin{FLT_MAX};
-    glm::vec3 AABBMax{-FLT_MAX};
+    bool transparent{ false };
+    glm::vec3 AABBMin{ FLT_MAX };
+    glm::vec3 AABBMax{ -FLT_MAX };
+    glm::vec3 AABBTransformedMin;
+    glm::vec3 AABBTransformedMax;
+    bool transformed{ false };
 
     glm::mat4 modelMatrix{ 1.0f };  // model matrix for transformations
 
@@ -36,21 +39,65 @@ public:
         origin = glm::vec3(0.0f, 0.0f, 0.0f);
     };
 
-    // update position etc. based on running time
-    void update(const float delta_t) {
-        origin += glm::vec3(3,0,0) * delta_t; // s = s0 + v*dt
+    void setPos(const glm::vec3& pos) {
+        origin = pos;
+        transformed = true;
     }
 
-    void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights, const glm::vec3* position = nullptr) {
-        modelMatrix = glm::mat4(1.0f); // identity matrix
-        if (position == nullptr) {
-          position = &origin; // use model's origin if no position provided, else the position from the argument
-        }
-        modelMatrix = glm::translate(modelMatrix, *position);
-        modelMatrix = glm::rotate(modelMatrix, orientation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-        modelMatrix = glm::rotate(modelMatrix, orientation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-        modelMatrix = glm::rotate(modelMatrix, orientation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+    void setOrientation(const glm::vec3& orientation) {
+        this->orientation = orientation;
+        transformed = true;
+    }
+
+    void setScale(const glm::vec3& scale) {
+        this->scale = scale;
+        transformed = true;
+    }
+
+    void updateAABBAndModelMatrix() {
+        if (!transformed) return;
+        modelMatrix = glm::mat4(1.0f);
+        modelMatrix = glm::translate(modelMatrix, origin);
+        modelMatrix = glm::rotate(modelMatrix, orientation.x, glm::vec3(1, 0, 0));
+        modelMatrix = glm::rotate(modelMatrix, orientation.y, glm::vec3(0, 1, 0));
+        modelMatrix = glm::rotate(modelMatrix, orientation.z, glm::vec3(0, 0, 1));
         modelMatrix = glm::scale(modelMatrix, scale);
+
+        glm::vec3 corners[8] = {
+            AABBMin,
+            glm::vec3(AABBMin.x, AABBMin.y, AABBMax.z),
+            glm::vec3(AABBMin.x, AABBMax.y, AABBMin.z),
+            glm::vec3(AABBMin.x, AABBMax.y, AABBMax.z),
+            glm::vec3(AABBMax.x, AABBMin.y, AABBMin.z),
+            glm::vec3(AABBMax.x, AABBMin.y, AABBMax.z),
+            glm::vec3(AABBMax.x, AABBMax.y, AABBMin.z),
+            AABBMax
+        };
+
+        glm::vec3 newMin(FLT_MAX), newMax(-FLT_MAX);
+        for (auto& corner : corners) {
+            glm::vec3 transformed = glm::vec3(modelMatrix * glm::vec4(corner, 1.0));
+            newMin = glm::min(newMin, transformed);
+            newMax = glm::max(newMax, transformed);
+        }
+        AABBTransformedMax = newMax;
+        AABBTransformedMin = newMin;
+
+        transformed = false;
+    }
+
+    glm::vec3 getAABBMin() {
+        updateAABBAndModelMatrix();
+        return AABBTransformedMin;
+    }
+
+    glm::vec3 getAABBMax() {
+        updateAABBAndModelMatrix();
+        return AABBTransformedMax;
+    }
+
+    void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights) {
+        updateAABBAndModelMatrix();
 
         // checks the sizes of spot and point lights
         // sorts them out and takes the max amount if the size exceeds the limit
@@ -112,12 +159,12 @@ private:
             AABBMax = glm::max(AABBMax, positions[i]);
             AABBMin = glm::min(AABBMin, positions[i]);
 
-            // create Mesh and store it
-            meshes.emplace_back(GL_TRIANGLES, shader, vertices, indices, origin, orientation);
-
-            // set model name based on the filename stem
-            name = path.stem().string();
         }
+        // create Mesh and store it
+        meshes.emplace_back(GL_TRIANGLES, shader, vertices, indices, origin, orientation);
+
+        // set model name based on the filename stem
+        name = path.stem().string();
         // origin = glm::vec3((min.x + max.x) / 2.0f, min.y, (min.z + max.z) / 2.0f);
 
         std::cout << "Loaded model: " << path << "\n"

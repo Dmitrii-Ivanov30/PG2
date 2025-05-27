@@ -24,8 +24,8 @@ namespace Behaviors {
         float baseY = 0.0f;
         bool first = true;
         return [=](Entity& self, float dt) mutable {
-            if (first) { baseY = self.position.y; first = false; }
-            self.position.y = baseY + sin(glfwGetTime() * speed) * amplitude;
+            if (first) { first = false; }
+            self.updatePos(0, static_cast<float>(sin(glfwGetTime() * speed) * amplitude), 0);
             };
     }
 

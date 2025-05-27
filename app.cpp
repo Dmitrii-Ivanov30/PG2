@@ -1,6 +1,14 @@
 #include "app.hpp"
 
 
+bool AABBintersect(const glm::vec3& minA, const glm::vec3& maxA,
+    const glm::vec3& minB, const glm::vec3& maxB) {
+    return (minA.x <= maxB.x && maxA.x >= minB.x) &&
+        (minA.y <= maxB.y && maxA.y >= minB.y) &&
+        (minA.z <= maxB.z && maxA.z >= minB.z);
+}
+
+
 App::App() : window(nullptr), fov(60.0f), vsync(true), currentColor(1.0f, 0.0f, 0.0f, 1.0f) {
     std::cout << "Application initialized\n";
 }
@@ -167,6 +175,7 @@ bool App::init() {
     glfwSetMouseButtonCallback(window, mouse_clicked_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback); // mouse movement
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // init resources
     try {
@@ -206,7 +215,7 @@ void App::initAssets(void) {
 
     // load model
     Model triangleModel("resources/objects/triangle.obj", shader);
-    triangleModel.origin = glm::vec3(0.0f, 0.0f, 0.0f);  // center the model
+    triangleModel.setPos(glm::vec3(2.0f, 0.0f, 0.0f));  // center the model
 
     // load texture
     GLuint texture = textureInit("resources/textures/transparent4.png", isTransparent);
@@ -222,16 +231,23 @@ void App::initAssets(void) {
     /*
      * Entities and particles init
      */
-    // Load the bot model from an OBJ file
-    scene.emplace("bot", Model("resources/objects/triangle.obj", shader));
+     // Load the bot model from an OBJ file
+    Model botModel("resources/objects/triangle.obj", shader);
+    botModel.origin = glm::vec3(0.0f, 0.0f, 0.0f);
+    botModel.transparent = isTransparent;
+    for (auto& mesh : botModel.meshes) {
+        mesh.texture_id = texture;
+    }
+    scene.emplace("bot", std::move(botModel));
     auto botModelPtr = &scene.at("bot"); // store pointer for entity
 
     // Create a bot entity at position (0,5,0) with WalkInCircle behavior
-    Entity bot(glm::vec3(0.0f, 5.0f, 0.0f), botModelPtr);
-    bot.behaviors.push_back(Behaviors::WalkInCircle(glm::vec3(10, 0, 10), 50.0f, 10.0f));
+    Entity bot(glm::vec3(0.0f, 0.0f, 0.0f), botModelPtr);
+    bot.setSpeed(glm::vec3(0.1f, 0.0f, 0.0f));
+    // bot.behaviors.push_back(Behaviors::WalkInCircle(glm::vec3(10, 0, 10), 50.0f, 10.0f));
     entities.push_back(bot);
 
-	// init particles shader
+    // init particles shader
     particleShader = ShaderProgram("resources/shaders/particle.vert", "resources/shaders/particle.frag");
 
     // initialize lights
@@ -353,7 +369,6 @@ void App::initLights() {
     }
     file_spot_light.close();
 
-    lights.initCameraLight(camera.position, camera.front);
     lights.initDirectionalLight();
 }
 
@@ -387,10 +402,6 @@ int App::run() {
         glm::vec3 moveOffset = camera.ProcessInput(window, deltaTime);
         camera.position += moveOffset;
 
-        // Update spotlight position/direction to follow camera
-        lights.cameraLight.position = camera.position;
-        lights.cameraLight.direction = camera.front;
-
         // Update view matrix from camera
         viewMatrix = camera.GetViewMatrix();
 
@@ -399,7 +410,7 @@ int App::run() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Activate main shader and set uniforms
-        // shader.activate();
+        // shader.activate();  
         // shader.setUniform("uP_m", projectionMatrix);
         // shader.setUniform("uV_m", viewMatrix); // Updated every frame
 
@@ -418,6 +429,25 @@ int App::run() {
         Particles::update(static_cast<float>(deltaTime));
 
         /*
+         *  --- COLLISIONS ---
+         */
+
+        for (auto it1 = scene.begin(); it1 != scene.end(); ++it1) {
+            for (auto it2 = std::next(it1); it2 != scene.end(); ++it2) {
+                if (it1->second.name == "Terrain" || it2->second.name == "Terrain") { continue; }
+                auto minA = it1->second.getAABBMin();
+                auto maxA = it1->second.getAABBMax();
+                auto minB = it2->second.getAABBMin();
+                auto maxB = it2->second.getAABBMax();
+
+                if (AABBintersect(minA, maxA, minB, maxB)) {
+                    std::cout << "Collision detected between "
+                        << it1->first << " and " << it2->first << std::endl;
+                }
+            }
+        }
+
+        /*
          *  --- SCENE RENDERING ---
          */
 
@@ -433,17 +463,10 @@ int App::run() {
             else
                 transparent.emplace_back(&model); // save pointer for painters algorithm
         }
-        // Entities (draw on top of terrain, but before transparent)
-        for (auto& ent : entities) {
-            if (ent.model)
-                ent.model->draw(projectionMatrix, viewMatrix, lights, &ent.position);
-        }
         // THIRD PART - draw only transparent - painter's algorithm (sort by distance from camera, from far to near)
         std::sort(transparent.begin(), transparent.end(), [&](Model const * a, Model const * b) {
-            glm::vec3 translation_a = glm::vec3(a->modelMatrix[3]);  // get 3 values from last column of model matrix = translation
-            glm::vec3 translation_b = glm::vec3(b->modelMatrix[3]);  // dtto for model B
-            return glm::distance(camera.position, translation_a) < glm::distance(camera.position, translation_b); // sort by distance from camera
-            });
+            return glm::distance(camera.position, a->origin) > glm::distance(camera.position, b->origin); // sort by distance from camera
+        });
         glEnable(GL_BLEND);
         glDepthMask(GL_FALSE);
         for (auto p : transparent) {
@@ -481,6 +504,36 @@ int App::run() {
     }
 
     return EXIT_SUCCESS;
+}
+
+void App::toggleFullscreen() {
+    if (!window) return;
+
+    if (!isFullscreen) {
+        // Save current window position and size
+        glfwGetWindowPos(window, &savedX, &savedY);
+        glfwGetWindowSize(window, &savedWidth, &savedHeight);
+
+        // Get primary monitor and its video mode
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+        // Switch to fullscreen
+        glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+        isFullscreen = true;
+    }
+    else {
+        // Restore to windowed mode
+        glfwSetWindowMonitor(window, nullptr, savedX, savedY, savedWidth, savedHeight, 0);
+        isFullscreen = false;
+    }
+    
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    windowWidth = width;
+    windowHeight = height;
+    glViewport(0, 0, width, height);
+    updateProjection();
 }
 
 App::~App() {
@@ -526,6 +579,9 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
             app->vsync = !app->vsync;
             glfwSwapInterval(app->vsync ? 1 : 0);
             break;
+        case GLFW_KEY_F11:
+            app->toggleFullscreen();
+            break;
         default:
             break;
         }
@@ -550,5 +606,15 @@ void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
     app->cursorLastY = ypos;
 
     app->camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void App::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    if (app) {
+        app->windowWidth = width;
+        app->windowHeight = height;
+        app->updateProjection();
+    }
 }
 // -----------------------------------------
