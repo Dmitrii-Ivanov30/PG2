@@ -43,9 +43,9 @@ public:
 
     void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights, const glm::vec3* position = nullptr) {
         modelMatrix = glm::mat4(1.0f); // identity matrix
-		if (position == nullptr) {
-			position = &origin; // use model's origin if no position provided, else the position from the argument
-		}
+        if (position == nullptr) {
+          position = &origin; // use model's origin if no position provided, else the position from the argument
+        }
         modelMatrix = glm::translate(modelMatrix, *position);
         modelMatrix = glm::rotate(modelMatrix, orientation.x, glm::vec3(1.0f, 0.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, orientation.y, glm::vec3(0.0f, 1.0f, 0.0f));
