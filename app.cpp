@@ -219,6 +219,21 @@ void App::initAssets(void) {
     // add to scene
     scene.emplace("triangle", std::move(triangleModel));
 
+    /*
+     * Entities and particles init
+     */
+    // Load the bot model from an OBJ file
+    scene.emplace("bot", Model("resources/objects/triangle.obj", shader));
+    auto botModelPtr = &scene.at("bot"); // store pointer for entity
+
+    // Create a bot entity at position (0,5,0) with WalkInCircle behavior
+    Entity bot(glm::vec3(0.0f, 5.0f, 0.0f), botModelPtr);
+    bot.behaviors.push_back(Behaviors::WalkInCircle(glm::vec3(10, 0, 10), 50.0f, 10.0f));
+    entities.push_back(bot);
+
+	// init particles shader
+    particleShader = ShaderProgram("resources/shaders/particle.vert", "resources/shaders/particle.frag");
+
     // initialize lights
     initLights();
 
@@ -350,7 +365,6 @@ int App::run() {
     // Initialize camera settings
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture mouse
     glfwGetCursorPos(window, &cursorLastX, &cursorLastY);        // get initial position
-
     glViewport(0, 0, windowWidth, windowHeight);
 
     // time variables
@@ -389,9 +403,26 @@ int App::run() {
         // shader.setUniform("uP_m", projectionMatrix);
         // shader.setUniform("uV_m", viewMatrix); // Updated every frame
 
+        // --- ENTITY & PARTICLE LOGIC ---
+        float groundHeight = 0.0f; // You could sample from terrain here if desired
+        for (auto& ent : entities) {
+            ent.update(static_cast<float>(deltaTime), groundHeight);
+            //std::cout << "Bot position: " << ent.position.x << ", " << ent.position.y << ", " << ent.position.z << std::endl;
+
+            // Example: spawn sparks at bot position every time it passes a certain y threshold
+            if (ent.position.y > 5.5f) {
+                Particles::spawn(ent.position, 10);
+            }
+
+        }
+        Particles::update(static_cast<float>(deltaTime));
+
+        /*
+         *  --- SCENE RENDERING ---
+         */
+
         std::vector<Model*> transparent;    // temporary, vector of pointers to transparent objects
         transparent.reserve(scene.size());  // reserve size for all objects to avoid reallocation
-
 
         // Draw all models in the scene
         for (auto & [name, model] : scene) {
@@ -402,7 +433,12 @@ int App::run() {
             else
                 transparent.emplace_back(&model); // save pointer for painters algorithm
         }
-        // SECOND PART - draw only transparent - painter's algorithm (sort by distance from camera, from far to near)
+        // Entities (draw on top of terrain, but before transparent)
+        for (auto& ent : entities) {
+            if (ent.model)
+                ent.model->draw(projectionMatrix, viewMatrix, lights, &ent.position);
+        }
+        // THIRD PART - draw only transparent - painter's algorithm (sort by distance from camera, from far to near)
         std::sort(transparent.begin(), transparent.end(), [&](Model const * a, Model const * b) {
             glm::vec3 translation_a = glm::vec3(a->modelMatrix[3]);  // get 3 values from last column of model matrix = translation
             glm::vec3 translation_b = glm::vec3(b->modelMatrix[3]);  // dtto for model B
@@ -419,6 +455,11 @@ int App::run() {
         }
         glDisable(GL_BLEND);
         glDepthMask(GL_TRUE);
+
+        // --- PARTICLE RENDERING ---
+        // Use a simple shader for particles, or reuse one of your shaders
+        Particles::drawParticles(projectionMatrix, viewMatrix, particleShader);
+
         // FPS calculation
         frameCount++;
         const double current_time = glfwGetTime();
@@ -433,6 +474,7 @@ int App::run() {
             frameCount = 0;
             lastTime = current_time;
         }
+
 
         glfwSwapBuffers(window);  // Update window content
         glfwPollEvents();         // Process pending events

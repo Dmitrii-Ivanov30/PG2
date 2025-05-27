@@ -41,6 +41,9 @@
 #include "Mesh.hpp"
 #include "camera.hpp"
 #include "Lights.hpp"
+#include "Entity.hpp"
+#include "Behavior.hpp"
+#include "Particles.hpp"
 
 // callbacks
 #include "gl_err_callback.h"
@@ -54,6 +57,8 @@ public:
 
     // lights struct
     Lights lights;
+    // entities
+    std::vector<Entity> entities;
 
     App();
     bool init();
@@ -74,6 +79,7 @@ protected:
     // all objects of the scene addressable by name  
     std::unordered_map<std::string, Model> scene;
     ShaderProgram shader;
+    ShaderProgram particleShader;
 
 private:
     // default window settings
