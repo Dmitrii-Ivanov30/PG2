@@ -496,7 +496,7 @@ int App::run() {
         lights.spotLights[movingSpotIndex].position = spotPos;
         lights.spotLights[movingSpotIndex].direction = spotDir;
         lights.spotLights[movingSpotIndex].ambient = glm::vec3(0.1f, 0.1f, 1.0f);
-
+      
         terrain->draw(projectionMatrix, viewMatrix, lights);
         // Draw all models in the scene
         for (auto & [name, model] : scene) {

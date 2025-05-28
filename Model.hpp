@@ -120,8 +120,6 @@ public:
         }
     }
 
-
-
 private:
 #include <tuple>
     static constexpr uint MAX_POINT_LIGHTS = 15;
@@ -173,7 +171,6 @@ private:
             << "Indices: " << indices.size() << "\n"
             << "Meshes: " << meshes.size() << std::endl;
     }
-    
 
     std::vector<PointLight> selectPointLights(const std::vector<PointLight>& lights) {
         // selects n=MAX_POINT_LIGHTS closest to the position of our Model object
@@ -204,13 +201,13 @@ private:
     }
 };
 
-
 class Terrain : public Model {
 public:
     Terrain(ShaderProgram shader) : Model(shader) {
         loadTerrainModel();
         origin = glm::vec3(0.0f, 0.0f, 0.0f);
     };
+
     void getHeightOnMap(glm::vec3& pos, float modelHeight = 0) {
         float denom = (maxMapVal - minMapVal > 1e-5) ? (maxMapVal - minMapVal) : 1.0;
 
@@ -232,12 +229,14 @@ public:
         float centered = (normalized - 0.5f) * 2.0f;
         pos.y = centered * height_scale + modelHeight;
     }
+
 private:
     int mesh_step_size = 30; // Controls mesh triangle density/detail
     float height_scale = 1.5f; // Controls height exaggeration
     cv::Mat hmap;
     double minMapVal, maxMapVal;
     float mapScaleXZ = 1 / 20.0f;
+
     void loadTerrainModel() {
         hmap = cv::imread("resources/textures/heights.png", cv::IMREAD_GRAYSCALE);
         if (hmap.empty()) {
