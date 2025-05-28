@@ -63,7 +63,10 @@ void main()
 {
     vec3 norm = normalize(fs_in.Normal);
     vec3 viewDir = normalize(viewPos - fs_in.FragPos);
-    vec3 texColor = texture(tex0, fs_in.texcoord).rgb;
+    vec4 texSample = texture(tex0, fs_in.texcoord);
+    vec3 texColor = texSample.rgb;
+    float alpha = texSample.a;
+
 
     vec3 result = ambientLight.color * texColor;
 
@@ -75,7 +78,7 @@ void main()
     for(int i = 0; i < numSpotLights; ++i)
         result += CalcSpotLight(spotLights[i], norm, fs_in.FragPos, viewDir, texColor);
 
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(result, alpha);
 }
 
 // Lighting calculations (same as previous answer)

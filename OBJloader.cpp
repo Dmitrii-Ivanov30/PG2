@@ -56,7 +56,7 @@ bool loadOBJ(const char * path, std::vector < glm::vec3 > & out_vertices, std::v
 			#ifdef _WIN32
 				fscanf_s(file, "%f %f\n", &uv.y, &uv.x);
 			#elif defined(__linux__)
-				fscanf(file, "%f %f\n", &uv.y, &uv.x);
+				fscanf(file, "%f %f\n", &uv.x, &uv.y);
 			#endif
 			temp_uvs.push_back(uv);
 		}
@@ -81,15 +81,19 @@ bool loadOBJ(const char * path, std::vector < glm::vec3 > & out_vertices, std::v
 				printf("File can't be read by simple parser :( Try exporting with other options\n");
 				return false;
 			}
+			// vertexIndices.push_back(vertexIndex[0]);
+			// vertexIndices.push_back(vertexIndex[1]);
+			// vertexIndices.push_back(vertexIndex[2]);
 			vertexIndices.push_back(vertexIndex[0]);
-			vertexIndices.push_back(vertexIndex[1]);
-			vertexIndices.push_back(vertexIndex[2]);
+			vertexIndices.push_back(vertexIndex[2]); // flipped
+			vertexIndices.push_back(vertexIndex[1]); // flipped
+
 			uvIndices.push_back(uvIndex[0]);
-			uvIndices.push_back(uvIndex[1]);
 			uvIndices.push_back(uvIndex[2]);
+			uvIndices.push_back(uvIndex[1]);
 			normalIndices.push_back(normalIndex[0]);
-			normalIndices.push_back(normalIndex[1]);
 			normalIndices.push_back(normalIndex[2]);
+			normalIndices.push_back(normalIndex[1]);
 		}
 	}
 
@@ -109,8 +113,9 @@ bool loadOBJ(const char * path, std::vector < glm::vec3 > & out_vertices, std::v
 	for (unsigned int u = 0; u < normalIndices.size(); u++) {
 		unsigned int normalIndex = normalIndices[u];
 		glm::vec3 normal = temp_normals[normalIndex - 1];
-		out_normals.push_back(normal);
+		out_normals.push_back(-normal);
 	}
+
 
 	fclose(file);
 	return true;

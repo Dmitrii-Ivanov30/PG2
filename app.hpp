@@ -57,8 +57,6 @@ public:
 
     // lights struct
     Lights lights;
-    // entities
-    std::vector<Entity> entities;
 
     App();
     bool init();
@@ -83,6 +81,8 @@ protected:
     Terrain *terrain;
     ShaderProgram shader;
     ShaderProgram particleShader;
+    // entities
+    std::unordered_map<std::string, Entity> entities;
 
 private:
     // default window settings

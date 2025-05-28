@@ -193,7 +193,7 @@ void App::initAssets(void) {
     bool isTransparent = false;
     shader = ShaderProgram("resources/shaders/tex.vert", "resources/shaders/tex.frag");
     terrain = new Terrain{ shader };
-    GLuint texture_terrain = textureInit("resources/textures/tex_256.png", isTransparent);
+    GLuint texture_terrain = textureInit("resources/textures/tex_256_no_a.png", isTransparent);
 
     terrain->transparent = isTransparent;
     for (auto& mesh : terrain->meshes) {
@@ -206,44 +206,61 @@ void App::initAssets(void) {
      */
     glm::vec3 initPos = glm::vec3(2.0f, 0.0f, 0.0f);
     isTransparent = true;
-    // load shader program
-    shader = ShaderProgram("resources/shaders/tex_1.vert", "resources/shaders/tex_1.frag");
 
     // load model
-    Model triangleModel("resources/objects/triangle.obj", shader);
-    terrain->getHeightOnMap(initPos, triangleModel.getHeight() / 2.0f);
-    triangleModel.setPos(initPos);  // center the model
+    Model triangleModel1("resources/objects/triangle.obj", shader);
+    terrain->getHeightOnMap(initPos, triangleModel1.getHeight() / 2.0f);
+    triangleModel1.setPos(initPos);  // center the model
 
     // load texture
     GLuint texture = textureInit("resources/textures/transparent4.png", isTransparent);
-    triangleModel.transparent = isTransparent;
+    triangleModel1.transparent = isTransparent;
     // assign all textures to all meshes
-    for (auto& mesh : triangleModel.meshes) {
+    for (auto& mesh : triangleModel1.meshes) {
         mesh.texture_id = texture;
     }
 
     // add to scene
-    scene.emplace("triangle", std::move(triangleModel));
+    scene.emplace("triangle1", std::move(triangleModel1));
+
+    initPos = glm::vec3(-2.0f, 0.0f, 0.0f);
+    Model triangleModel2("resources/objects/triangle.obj", shader);
+    terrain->getHeightOnMap(initPos, triangleModel2.getHeight() / 2.0f);
+    triangleModel2.setPos(initPos);  // center the model
+
+    // load texture
+    texture = textureInit("resources/textures/transparent4.png", isTransparent);
+    triangleModel2.transparent = isTransparent;
+    // assign all textures to all meshes
+    for (auto& mesh : triangleModel2.meshes) {
+        mesh.texture_id = texture;
+    }
+
+    // add to scene
+    scene.emplace("triangle2", std::move(triangleModel2));
 
     /*
      * Entities and particles init
      */
      // Load the bot model from an OBJ file
-    Model botModel("resources/objects/triangle.obj", shader);
+    isTransparent = false;
+    Model botModel("resources/objects/cube.obj", shader);
     initPos = glm::vec3{ -0.5f, 0.0f, 0.0f };
     terrain->getHeightOnMap(initPos, botModel.getHeight() / 2.0f);
     // botModel.setPos(initPos);
+    texture = textureInit("resources/textures/tex_256.png", isTransparent);
     botModel.transparent = isTransparent;
     for (auto& mesh : botModel.meshes) {
         mesh.texture_id = texture;
     }
-    scene.emplace("bot", std::move(botModel));
+    std::string botName = "bot";
+    scene.emplace(botName, std::move(botModel));
     auto botModelPtr = &scene.at("bot"); // store pointer for entity
 
     // Create a bot entity at position (0,5,0) with WalkInCircle behavior
     Entity bot(initPos, botModelPtr);
-    bot.setSpeed(glm::vec3(0.1f, 0.0f, -0.5f));
-    entities.push_back(bot);
+    bot.setSpeed(glm::vec3(0.3f, 0.0f, 0.0f));
+    entities.emplace(botName, std::move(bot));
 
     // init particles shader
     particleShader = ShaderProgram("resources/shaders/particle.vert", "resources/shaders/particle.frag");
@@ -375,6 +392,9 @@ void App::initLights() {
 }
 
 int App::run() {
+    // Enable back-face culling to improve performance by not rendering polygons facing away from the camera
+    glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);
     // Initialize camera settings
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture mouse
     glfwGetCursorPos(window, &cursorLastX, &cursorLastY);        // get initial position
@@ -412,7 +432,7 @@ int App::run() {
 
         // --- ENTITY & PARTICLE LOGIC ---
         float groundHeight = 0.0f; // You could sample from terrain here if desired
-        for (auto& ent : entities) {
+        for (auto& [name, ent] : entities) {
             glm::vec3 entityPosition = ent.position;
             terrain->getHeightOnMap(entityPosition, ent.model->getHeight() / 2.0f);
             ent.update(static_cast<float>(deltaTime), entityPosition.y);
@@ -441,6 +461,12 @@ int App::run() {
                 if (AABBintersect(minA, maxA, minB, maxB)) {
                     std::cout << "Collision detected between "
                         << it1->first << " and " << it2->first << std::endl;
+                    Particles::spawn(it1->second.origin, 5);
+                    Particles::spawn(it2->second.origin, 5);
+                    auto ent1 = entities.find(it1->first);
+                    auto ent2 = entities.find(it2->first);
+                    if (ent1 != entities.end()) ent1->second.reverseSpeedXZ();
+                    if (ent2 != entities.end()) ent2->second.reverseSpeedXZ();
                 }
             }
         }

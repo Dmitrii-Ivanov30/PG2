@@ -25,6 +25,9 @@ public:
         : position(pos), velocity(0.0f), acceleration(0.0f), model(mdl) {
     }
 
+    Entity() : position(0.0f), model(nullptr), velocity(0.0f), acceleration(0.0f) {}
+
+
     void update(float dt, float groundHeight) {
         // Gravity
         if (!isGrounded) acceleration.y += gravity;
@@ -50,6 +53,10 @@ public:
     }
 
     void applyForce(const glm::vec3& force) { acceleration += force; }
+    void reverseSpeedXZ() {
+        velocity.x = -velocity.x;
+        velocity.z = -velocity.z;
+    }
 
     void setSpeed(glm::vec3 speed) { velocity = speed; }
 
