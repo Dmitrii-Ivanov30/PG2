@@ -348,7 +348,7 @@ void App::initLights() {
     file_point_light.close();
 
     // init spot lights from the file
-    std::filesystem::path spot_lights_path = "resources/lights/point_lights.lights";
+    std::filesystem::path spot_lights_path = "resources/lights/spot_lights.lights";
     std::ifstream file_spot_light(spot_lights_path);
 
     if (!file_spot_light.is_open()) {
@@ -369,7 +369,11 @@ void App::initLights() {
     }
     file_spot_light.close();
 
+    // directional light
     lights.initDirectionalLight();
+
+    // ambient light
+    lights.initAmbientLight(glm::vec3(0.0f));
 }
 
 int App::run() {
@@ -391,6 +395,9 @@ int App::run() {
     // Print number of lights before drawing
     std::cout << "numPointLights = " << lights.pointLights.size()
         << ", numSpotLights = " << lights.spotLights.size() << std::endl;
+
+    // index of last spotlight
+    size_t movingSpotIndex = lights.spotLights.size() - 1;
 
     while (!glfwWindowShouldClose(window)) {
         // Calculate delta time
@@ -454,11 +461,39 @@ int App::run() {
         std::vector<Model*> transparent;    // temporary, vector of pointers to transparent objects
         transparent.reserve(scene.size());  // reserve size for all objects to avoid reallocation
 
+        double time = glfwGetTime();
+        float sunAngle = float(time) * 0.3f;
+        float daylight = glm::clamp(sin(sunAngle), 0.0f, 1.0f);
+        float smoothDay = daylight * daylight;
+
+        // Ambient: night / day changes
+        lights.ambientLight.color = glm::vec3(0.2f, 0.2f, 0.25f) + glm::vec3(0.5f, 0.5f, 0.4f) * smoothDay;
+        
+        // Sun direction and color
+        lights.sun.direction = glm::normalize(glm::vec3(cos(sunAngle), -0.5f, sin(sunAngle)));
+
+        // Animate the last spotlight in a circle near the hmap center
+        double t = glfwGetTime();
+        float radius = 8.0f; // radius of movement
+        float height = 7.0f; // height above hmap
+        glm::vec3 hmapCenter = glm::vec3(0.0f, 0.0f, 0.0f);
+        // Calculate position (X,Z circle, fixed Y)
+        glm::vec3 spotPos = hmapCenter + glm::vec3(
+            cos(t) * radius,
+            height,
+            sin(t) * radius
+        );
+        // Spotlight points downward
+        glm::vec3 spotDir = glm::vec3(0.0f, -1.0f, 0.0f);
+        // Update the spotlight in the lights struct
+        lights.spotLights[movingSpotIndex].position = spotPos;
+        lights.spotLights[movingSpotIndex].direction = spotDir;
+        lights.spotLights[movingSpotIndex].ambient = glm::vec3(0.1f, 0.1f, 1.0f);
+
         // Draw all models in the scene
         for (auto & [name, model] : scene) {
             if (!model.transparent) {
                 model.draw(projectionMatrix, viewMatrix, lights);
-                // std::cout << "Rendering non transparent object: " << name << std::endl;
             }
             else
                 transparent.emplace_back(&model); // save pointer for painters algorithm

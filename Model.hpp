@@ -106,15 +106,16 @@ public:
         if (lights.pointLights.size() > MAX_POINT_LIGHTS) {
             closestPointLights = selectPointLights(lights.pointLights);
         }
+        else {
+            closestPointLights = lights.pointLights;
+        }
         if (lights.spotLights.size() >= MAX_SPOT_LIGHTS)
-            closestSpotLights = selectSpotLights(lights.spotLights, lights.cameraLight);
+            closestSpotLights = selectSpotLights(lights.spotLights);
         else {
             closestSpotLights = lights.spotLights;
-            closestSpotLights.push_back(lights.cameraLight);
         }
         for (auto& mesh : meshes) {
-            mesh.draw(projection, view, modelMatrix, lights.sun, closestSpotLights,
-                closestPointLights.empty() ? lights.pointLights : closestPointLights);
+            mesh.draw(projection, view, modelMatrix, lights.ambientLight, lights.sun, closestSpotLights, closestPointLights);
         }
     }
 
@@ -202,11 +203,9 @@ private:
         return sorted;
     }
 
-    std::vector<SpotLight> selectSpotLights(const std::vector<SpotLight>& lights,
-        const SpotLight& cameraLight) {
+    std::vector<SpotLight> selectSpotLights(const std::vector<SpotLight>& lights) {
         // selects n=MAX_SPOT_LIGHTS closest to the position of our Model object
         std::vector<SpotLight> sorted = lights;
-        sorted.push_back(cameraLight);
         glm::vec3 objectPos = glm::vec3(modelMatrix[3]);
         std::sort(sorted.begin(), sorted.end(),
             [objectPos](const SpotLight& a, SpotLight const& b) {

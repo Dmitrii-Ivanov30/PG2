@@ -3,6 +3,10 @@
 #define MAX_POINT_LIGHTS 15
 #define MAX_SPOT_LIGHTS 15
 
+struct AmbientLight {
+    vec3 color;
+};
+
 struct DirectionalLight {
     vec3 direction;
     vec3 ambient;
@@ -44,6 +48,7 @@ out vec4 FragColor;
 uniform sampler2D tex0;
 uniform vec3 viewPos;
 
+uniform AmbientLight ambientLight;
 uniform DirectionalLight dirLights[1];
 uniform int numPointLights;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
@@ -60,7 +65,7 @@ void main()
     vec3 viewDir = normalize(viewPos - fs_in.FragPos);
     vec3 texColor = texture(tex0, fs_in.texcoord).rgb;
 
-    vec3 result = vec3(0.0);
+    vec3 result = ambientLight.color * texColor;
 
     result += CalcDirLight(dirLights[0], norm, viewDir, texColor);
 
