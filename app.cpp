@@ -145,11 +145,6 @@ bool App::init() {
 
     // initial view matrix
     updateProjection();
-    //viewMatrix = glm::lookAt(
-    //    glm::vec3(0.0f, 0.0f, 3.0f), // Camera position
-    //    glm::vec3(0.0f, 0.0f, 0.0f), // Look at
-    //    glm::vec3(0.0f, 1.0f, 0.0f)  // Up vector
-    //);
     camera.position = glm::vec3(0.0f, 0.0f, 3.0f);
     viewMatrix = camera.GetViewMatrix();
 
@@ -205,7 +200,6 @@ void App::initAssets(void) {
         mesh.texture_id = texture_terrain;
     }
     terrain->getHeightOnMap(camera.position, 0.2f);
-    // scene.emplace("Terrain", std::move(terrainModel));
 
     /*
      * Triangle init
@@ -249,7 +243,6 @@ void App::initAssets(void) {
     // Create a bot entity at position (0,5,0) with WalkInCircle behavior
     Entity bot(initPos, botModelPtr);
     bot.setSpeed(glm::vec3(0.1f, 0.0f, -0.5f));
-    // bot.behaviors.push_back(Behaviors::WalkInCircle(glm::vec3(10, 0, 10), 50.0f, 10.0f));
     entities.push_back(bot);
 
     // init particles shader
@@ -382,10 +375,6 @@ void App::initLights() {
 }
 
 int App::run() {
-    // Enable back-face culling to improve performance by not rendering polygons facing away from the camera
-    // glCullFace(GL_BACK);
-    // glEnable(GL_CULL_FACE);
-
     // Initialize camera settings
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // capture mouse
     glfwGetCursorPos(window, &cursorLastX, &cursorLastY);        // get initial position
@@ -420,11 +409,6 @@ int App::run() {
         // Clear buffers
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Activate main shader and set uniforms
-        // shader.activate();  
-        // shader.setUniform("uP_m", projectionMatrix);
-        // shader.setUniform("uV_m", viewMatrix); // Updated every frame
 
         // --- ENTITY & PARTICLE LOGIC ---
         float groundHeight = 0.0f; // You could sample from terrain here if desired
@@ -513,10 +497,6 @@ int App::run() {
         glEnable(GL_BLEND);
         glDepthMask(GL_FALSE);
         for (auto p : transparent) {
-            // std::cout << "Rendering transparent object: " << p->name << std::endl;
-            // glm::vec3 distance = p->closestPointOnAABB(camera.position);
-            // std::cout << "Model's distance to camera. X: " << distance.x
-            // << ", Y:" << distance.y << ", Z: " << distance.z << std::endl;
             p->draw(projectionMatrix, viewMatrix, lights);
         }
         glDisable(GL_BLEND);
@@ -540,7 +520,6 @@ int App::run() {
             frameCount = 0;
             lastTime = current_time;
         }
-
 
         glfwSwapBuffers(window);  // Update window content
         glfwPollEvents();         // Process pending events
