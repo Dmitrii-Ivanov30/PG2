@@ -83,7 +83,6 @@ protected:
     Terrain *terrain;
     ShaderProgram shader;
     ShaderProgram particleShader;
-    Terrain* terrain;
 
 private:
     // default window settings
