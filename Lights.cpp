@@ -38,6 +38,10 @@ SpotLight SpotLight::createDefault(const glm::vec3& pos, const glm::vec3& dir) {
     );
 }
 
+AmbientLight AmbientLight::createDefault(const glm::vec3& color) {
+    return AmbientLight(color);
+}
+
 // Apply methods for each light type
 void DirectionalLight::apply(GLuint shaderID, int index) const {
     std::string prefix = "dirLights[" + std::to_string(index) + "]";
@@ -72,6 +76,11 @@ void SpotLight::apply(GLuint shaderID, int index) const {
     glUniform1f(glGetUniformLocation(shaderID, (prefix + ".quadratic").c_str()), quadratic);
 }
 
+void AmbientLight::apply(GLuint shaderID, int index) const {
+    // Only one global ambient light is expected, so ignore index
+    glUniform3fv(glGetUniformLocation(shaderID, "ambientLight.color"), 1, glm::value_ptr(color));
+}
+
 void Lights::initDirectionalLight() {
     sun = DirectionalLight::createDefault();
 }
@@ -83,3 +92,7 @@ void Lights::initPointLight(const glm::vec3& position, const glm::vec3& color) {
 void Lights::initSpotLight(const glm::vec3& pos, const glm::vec3& dir) {
     spotLights.emplace_back(SpotLight::createDefault(pos, dir));
 }
+
+void Lights::initAmbientLight(const glm::vec3& color) {
+    ambientLight = AmbientLight::createDefault(color);
+};

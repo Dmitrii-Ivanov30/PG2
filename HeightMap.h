@@ -75,10 +75,10 @@ public:
                 float ch2 = (h2 - 0.5f) * 2.0f;
                 float ch3 = (h3 - 0.5f) * 2.0f;
 
-                glm::vec3 p0((x_coord - x_offset)*scaleXZ, ch0 * heightScale, (z_coord - z_offset)*scaleXZ);
-                glm::vec3 p1((x_coord + mesh_step_size - x_offset)*scaleXZ, ch1 * heightScale, (z_coord - z_offset)*scaleXZ);
-                glm::vec3 p2((x_coord + mesh_step_size - x_offset)*scaleXZ, ch2 * heightScale, (z_coord + mesh_step_size - z_offset)*scaleXZ);
-                glm::vec3 p3((x_coord - x_offset)*scaleXZ, ch3 * heightScale, (z_coord + mesh_step_size - z_offset)*scaleXZ);
+                glm::vec3 p0((x_coord - x_offset) * scaleXZ, ch0 * heightScale, (z_coord - z_offset) * scaleXZ);
+                glm::vec3 p1((x_coord + mesh_step_size - x_offset) * scaleXZ, ch1 * heightScale, (z_coord - z_offset) * scaleXZ);
+                glm::vec3 p2((x_coord + mesh_step_size - x_offset) * scaleXZ, ch2 * heightScale, (z_coord + mesh_step_size - z_offset) * scaleXZ);
+                glm::vec3 p3((x_coord - x_offset) * scaleXZ, ch3 * heightScale, (z_coord + mesh_step_size - z_offset) * scaleXZ);
 
                 float max_h = std::max({ h0, h1, h2, h3 });
 

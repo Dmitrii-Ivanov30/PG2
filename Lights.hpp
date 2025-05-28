@@ -87,13 +87,26 @@ struct SpotLight : public LightSource {
     std::string getType() const override { return "spot"; }
 };
 
+struct AmbientLight {
+    glm::vec3 color{ 0.1f, 0.1f, 0.1f };
+
+    AmbientLight() = default;
+    explicit AmbientLight(const glm::vec3& color) : color(color) {}
+
+    static AmbientLight createDefault(const glm::vec3& color = glm::vec3(0.1f, 0.1f, 0.1f));
+    void apply(GLuint shaderID, int index = 0) const;
+    std::string getType() const { return "ambient"; }
+    ~AmbientLight() = default;
+};
+
 struct Lights {
+    AmbientLight ambientLight;
     DirectionalLight sun;
     std::vector<SpotLight> spotLights;
-    SpotLight cameraLight;
     std::vector<PointLight> pointLights;
 
     void initDirectionalLight();
     void initPointLight(const glm::vec3& position, const glm::vec3& color);
     void initSpotLight(const glm::vec3& pos, const glm::vec3& dir);
+    void initAmbientLight(const glm::vec3& color = glm::vec3(0.1f, 0.1f, 0.1f));
 };

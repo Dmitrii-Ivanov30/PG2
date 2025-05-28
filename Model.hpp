@@ -24,8 +24,8 @@ public:
     bool transparent{ false };
     glm::vec3 AABBMin{ FLT_MAX };
     glm::vec3 AABBMax{ -FLT_MAX };
-    glm::vec3 AABBTransformedMin{0.0f};
-    glm::vec3 AABBTransformedMax{0.0f};
+    glm::vec3 AABBTransformedMin{ 0.0f };
+    glm::vec3 AABBTransformedMax{ 0.0f };
     bool transformed{ false };
 
     glm::mat4 modelMatrix{ 1.0f };  // model matrix for transformations
@@ -34,7 +34,7 @@ public:
     Model(const std::filesystem::path& filename, ShaderProgram shader) : shader(shader) {
         loadModel(filename);
     }
-    Model(ShaderProgram shader) : shader(shader){};
+    Model(ShaderProgram shader) : shader(shader) {};
 
     void setPos(const glm::vec3& pos) {
         origin = pos;
@@ -107,18 +107,18 @@ public:
         if (lights.pointLights.size() > MAX_POINT_LIGHTS) {
             closestPointLights = selectPointLights(lights.pointLights);
         }
+        else {
+            closestPointLights = lights.pointLights;
+        }
         if (lights.spotLights.size() >= MAX_SPOT_LIGHTS)
-            closestSpotLights = selectSpotLights(lights.spotLights, lights.cameraLight);
+            closestSpotLights = selectSpotLights(lights.spotLights);
         else {
             closestSpotLights = lights.spotLights;
-            closestSpotLights.push_back(lights.cameraLight);
         }
         for (auto& mesh : meshes) {
-            mesh.draw(projection, view, modelMatrix, lights.sun, closestSpotLights,
-                closestPointLights.empty() ? lights.pointLights : closestPointLights);
+            mesh.draw(projection, view, modelMatrix, lights.ambientLight, lights.sun, closestSpotLights, closestPointLights);
         }
     }
-
 
 private:
 #include <tuple>
@@ -186,11 +186,9 @@ private:
         return sorted;
     }
 
-    std::vector<SpotLight> selectSpotLights(const std::vector<SpotLight>& lights,
-        const SpotLight& cameraLight) {
+    std::vector<SpotLight> selectSpotLights(const std::vector<SpotLight>& lights) {
         // selects n=MAX_SPOT_LIGHTS closest to the position of our Model object
         std::vector<SpotLight> sorted = lights;
-        sorted.push_back(cameraLight);
         glm::vec3 objectPos = glm::vec3(modelMatrix[3]);
         std::sort(sorted.begin(), sorted.end(),
             [objectPos](const SpotLight& a, SpotLight const& b) {
@@ -204,12 +202,13 @@ private:
 };
 
 class Terrain : public Model {
-    public:
+public:
     Terrain(ShaderProgram shader) : Model(shader) {
         loadTerrainModel();
         origin = glm::vec3(0.0f, 0.0f, 0.0f);
     };
-    void getHeightOnMap(glm::vec3& pos, float modelHeight=0) {
+
+    void getHeightOnMap(glm::vec3& pos, float modelHeight = 0) {
         float denom = (maxMapVal - minMapVal > 1e-5) ? (maxMapVal - minMapVal) : 1.0;
 
         // Offsets to recenter terrain
@@ -230,12 +229,14 @@ class Terrain : public Model {
         float centered = (normalized - 0.5f) * 2.0f;
         pos.y = centered * height_scale + modelHeight;
     }
-    private:
+
+private:
     int mesh_step_size = 30; // Controls mesh triangle density/detail
     float height_scale = 1.5f; // Controls height exaggeration
     cv::Mat hmap;
     double minMapVal, maxMapVal;
-    float mapScaleXZ = 1/20.0f;
+    float mapScaleXZ = 1 / 20.0f;
+
     void loadTerrainModel() {
         hmap = cv::imread("resources/textures/heights.png", cv::IMREAD_GRAYSCALE);
         if (hmap.empty()) {

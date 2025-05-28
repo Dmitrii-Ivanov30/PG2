@@ -77,10 +77,14 @@ public:
 
     // Helper to apply all lights to the shader
     static void applyLights(GLuint shaderID,
+        const AmbientLight& ambientLight,
         const DirectionalLight& dirLight,
         const std::vector<SpotLight>& spotLights,
         const std::vector<PointLight>& pointLights)
-    {
+    {   
+        // Ambient Light
+        ambientLight.apply(shaderID, 0);
+
         // Directional light
         dirLight.apply(shaderID, 0);
 
@@ -101,8 +105,8 @@ public:
 
 
     void draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model,
-        const DirectionalLight& dirLight, const std::vector<SpotLight>& spotLights,
-        const std::vector<PointLight>& pointLights) {
+        const AmbientLight& ambientLight, const DirectionalLight& dirLight, 
+        const std::vector<SpotLight>& spotLights, const std::vector<PointLight>& pointLights) {
         shader.activate();
 
         // Set texture if available
@@ -124,7 +128,7 @@ public:
         if (uModel != -1) glUniformMatrix4fv(uModel, 1, GL_FALSE, &model[0][0]);
 
         // ****** APPLY LIGHTS HERE ******
-        applyLights(shader.getID(), dirLight, spotLights, pointLights);
+        applyLights(shader.getID(), ambientLight, dirLight, spotLights, pointLights);
 
         // draw mesh
         glBindVertexArray(VAO);
