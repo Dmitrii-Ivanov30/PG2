@@ -4,6 +4,7 @@
 #include <vector>
 #include "Model.hpp"
 
+
 class Entity {
 public:
     glm::vec3 position;

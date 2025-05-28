@@ -97,7 +97,8 @@ public:
         return getAABBMax().y - getAABBMin().y;
     }
 
-    void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights) {
+    void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights,
+        const glm::vec3& viewPos) {
         updateAABBAndModelMatrix();
 
         // checks the sizes of spot and point lights
@@ -116,7 +117,8 @@ public:
             closestSpotLights = lights.spotLights;
         }
         for (auto& mesh : meshes) {
-            mesh.draw(projection, view, modelMatrix, lights.ambientLight, lights.sun, closestSpotLights, closestPointLights);
+            mesh.draw(projection, view, modelMatrix, viewPos,
+                lights.ambientLight, lights.sun, closestSpotLights, closestPointLights);
         }
     }
 
@@ -231,7 +233,7 @@ public:
 
 private:
     int mesh_step_size = 30; // Controls mesh triangle density/detail
-    float height_scale = 1.5f; // Controls height exaggeration
+    float height_scale = 0.5f; // Controls height exaggeration
     cv::Mat hmap;
     double minMapVal, maxMapVal;
     float mapScaleXZ = 1 / 20.0f;

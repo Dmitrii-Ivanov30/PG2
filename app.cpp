@@ -112,7 +112,7 @@ bool App::init() {
     glEnable(GL_BLEND);
 
     // assume ALL objects are non-transparent
-    glEnable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
 
     // request debug context
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
@@ -126,6 +126,11 @@ bool App::init() {
     }
     // request MSAA
     if (AA) glfwWindowHint(GLFW_SAMPLES, AASamples);
+
+    // Open GL Core Profile
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     // create window
     window = glfwCreateWindow(windowWidth, windowHeight, windowTitle.c_str(), nullptr, nullptr);
     if (!window) {
@@ -213,7 +218,7 @@ void App::initAssets(void) {
     triangleModel1.setPos(initPos);  // center the model
 
     // load texture
-    GLuint texture = textureInit("resources/textures/transparent4.png", isTransparent);
+    GLuint texture = textureInit("resources/textures/tex_256.png", isTransparent);
     triangleModel1.transparent = isTransparent;
     // assign all textures to all meshes
     for (auto& mesh : triangleModel1.meshes) {
@@ -224,31 +229,26 @@ void App::initAssets(void) {
     scene.emplace("triangle1", std::move(triangleModel1));
 
     initPos = glm::vec3(-2.0f, 0.0f, 0.0f);
-    Model triangleModel2("resources/objects/triangle.obj", shader);
-    terrain->getHeightOnMap(initPos, triangleModel2.getHeight() / 2.0f);
-    triangleModel2.setPos(initPos);  // center the model
+    Model torchModel("resources/objects/torch.obj", shader);
+    terrain->getHeightOnMap(initPos, torchModel.getHeight() / 2.0f);
+    torchModel.setPos(initPos);  // center the model
 
-    // load texture
-    texture = textureInit("resources/textures/transparent4.png", isTransparent);
-    triangleModel2.transparent = isTransparent;
+    torchModel.transparent = isTransparent;
     // assign all textures to all meshes
-    for (auto& mesh : triangleModel2.meshes) {
+    for (auto& mesh : torchModel.meshes) {
         mesh.texture_id = texture;
     }
 
     // add to scene
-    scene.emplace("triangle2", std::move(triangleModel2));
+    scene.emplace("torch", std::move(torchModel));
 
     /*
      * Entities and particles init
      */
      // Load the bot model from an OBJ file
-    isTransparent = false;
     Model botModel("resources/objects/cube.obj", shader);
-    initPos = glm::vec3{ -0.5f, 0.0f, 0.0f };
+    initPos = glm::vec3{ 0.0f, 0.0f, 0.0f };
     terrain->getHeightOnMap(initPos, botModel.getHeight() / 2.0f);
-    // botModel.setPos(initPos);
-    texture = textureInit("resources/textures/tex_256.png", isTransparent);
     botModel.transparent = isTransparent;
     for (auto& mesh : botModel.meshes) {
         mesh.texture_id = texture;
@@ -257,10 +257,27 @@ void App::initAssets(void) {
     scene.emplace(botName, std::move(botModel));
     auto botModelPtr = &scene.at("bot"); // store pointer for entity
 
-    // Create a bot entity at position (0,5,0) with WalkInCircle behavior
     Entity bot(initPos, botModelPtr);
     bot.setSpeed(glm::vec3(0.3f, 0.0f, 0.0f));
     entities.emplace(botName, std::move(bot));
+
+    Model botModel1("resources/objects/cube_lava.obj", shader);
+    initPos = glm::vec3{ 0.0f, 0.0f, -3.0f };
+    terrain->getHeightOnMap(initPos, botModel1.getHeight() / 2.0f);
+    botModel1.transparent = isTransparent;
+    for (auto& mesh : botModel1.meshes) {
+        mesh.texture_id = texture;
+    }
+    std::string botName1 = "bot1";
+    scene.emplace(botName1, std::move(botModel1));
+    auto botModelPtr1 = &scene.at("bot1"); // store pointer for entity
+
+    Entity bot1(initPos, botModelPtr1);
+    bot1.behaviors.push_back(Behaviors::FlyUp());
+    bot1.setSpeed(glm::vec3(0.0f, 0.0f, 0.0f));
+    entities.emplace(botName1, std::move(bot1));
+
+
 
     // init particles shader
     particleShader = ShaderProgram("resources/shaders/particle.vert", "resources/shaders/particle.frag");
@@ -507,11 +524,11 @@ int App::run() {
         lights.spotLights[movingSpotIndex].direction = spotDir;
         lights.spotLights[movingSpotIndex].ambient = glm::vec3(0.1f, 0.1f, 1.0f);
       
-        terrain->draw(projectionMatrix, viewMatrix, lights);
+        terrain->draw(projectionMatrix, viewMatrix, lights, camera.position);
         // Draw all models in the scene
         for (auto & [name, model] : scene) {
             if (!model.transparent) {
-                model.draw(projectionMatrix, viewMatrix, lights);
+                model.draw(projectionMatrix, viewMatrix, lights, camera.position);
             }
             else
                 transparent.emplace_back(&model); // save pointer for painters algorithm
@@ -523,7 +540,7 @@ int App::run() {
         glEnable(GL_BLEND);
         glDepthMask(GL_FALSE);
         for (auto p : transparent) {
-            p->draw(projectionMatrix, viewMatrix, lights);
+            p->draw(projectionMatrix, viewMatrix, lights, camera.position);
         }
         glDisable(GL_BLEND);
         glDepthMask(GL_TRUE);
@@ -540,7 +557,7 @@ int App::run() {
         if (elapsed >= 1.0) {
             int fps = static_cast<int>(frameCount / elapsed);
             // show title + fps + vsync status
-            std::string title = windowTitle + " [FPS: " + std::to_string(fps) + "], VSYNC: " + (vsync ? "ON" : "OFF");
+            std::string title = windowTitle + " [FPS: " + std::to_string(fps) + "], VSYNC: " + (vsync ? "ON" : "OFF") + ", AA: " + (AA ? "ON" : "OFF");
             glfwSetWindowTitle(window, title.c_str());
 
             frameCount = 0;
@@ -630,6 +647,15 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
             break;
         case GLFW_KEY_F11:
             app->toggleFullscreen();
+            break;
+        case GLFW_KEY_P:
+            if (!app->AA) {
+                glEnable(GL_MULTISAMPLE);
+                app->AA = true;
+            } else {
+                glDisable(GL_MULTISAMPLE);
+                app->AA = false;
+            };
             break;
         default:
             break;

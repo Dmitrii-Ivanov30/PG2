@@ -104,7 +104,7 @@ public:
     }
 
 
-    void draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model,
+    void draw(const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model, const glm::vec3 viewPos,
         const AmbientLight& ambientLight, const DirectionalLight& dirLight, 
         const std::vector<SpotLight>& spotLights, const std::vector<PointLight>& pointLights) {
         shader.activate();
@@ -126,6 +126,10 @@ public:
         if (uProj != -1) glUniformMatrix4fv(uProj, 1, GL_FALSE, &projection[0][0]);
         if (uView != -1) glUniformMatrix4fv(uView, 1, GL_FALSE, &view[0][0]);
         if (uModel != -1) glUniformMatrix4fv(uModel, 1, GL_FALSE, &model[0][0]);
+
+        GLint uViewPos = glGetUniformLocation(shader.getID(), "viewPos");
+        if (uViewPos != -1) glUniform3fv(uViewPos, 1, &viewPos[0]);
+
 
         // ****** APPLY LIGHTS HERE ******
         applyLights(shader.getID(), ambientLight, dirLight, spotLights, pointLights);

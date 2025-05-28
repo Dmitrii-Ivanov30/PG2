@@ -18,6 +18,12 @@ namespace Behaviors {
             };
     }
 
+    inline Behavior FlyUp() {
+        return [=](Entity& self, float dt) mutable {
+            if (self.position.y <= 8.0f) self.applyForce(glm::vec3(0.0f, 1.0f, 0.0f) * self.movementSpeed);
+        };
+    }
+
     // Bob up and down
     inline Behavior Bob(float amplitude = 0.5f, float speed = 1.0f) {
 		std::cout << "Bob behavior initialized with amplitude: " << amplitude << " and speed: " << speed << std::endl;
