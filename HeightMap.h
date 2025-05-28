@@ -90,10 +90,7 @@ public:
                 // normals for both triangles, CCW
                 glm::vec3 n1 = glm::normalize(glm::cross(p1 - p0, p2 - p0)); // for p1
                 glm::vec3 n2 = glm::normalize(glm::cross(p2 - p0, p3 - p0)); // for p3
-                // Use CCW order with corrected cross products
-                // glm::vec3 n1 = glm::normalize(glm::cross(p0 - p1, p0 - p2)); // flipped
-                // glm::vec3 n2 = glm::normalize(glm::cross(p0 - p2, p0 - p3)); // flipped
-                glm::vec3 navg = glm::normalize(n1 + n2);                 // average for p0, p2 - common
+                glm::vec3 navg = glm::normalize(n1 + n2);                    // average for p0, p2 - common
 
                 // place vertices and ST to mesh
                 vertices.emplace_back(Vertex{ p0, navg, tc0 });

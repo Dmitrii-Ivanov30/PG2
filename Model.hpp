@@ -162,7 +162,6 @@ private:
 
         // set model name based on the filename stem
         name = path.stem().string();
-        // origin = glm::vec3((min.x + max.x) / 2.0f, min.y, (min.z + max.z) / 2.0f);
 
         std::cout << "Loaded model: " << path << "\n"
             << "Origin: (" << origin.x << ", " << origin.y
