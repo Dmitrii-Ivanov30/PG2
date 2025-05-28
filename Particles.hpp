@@ -43,44 +43,50 @@ namespace Particles {
     inline void drawParticles(const glm::mat4& projection, const glm::mat4& view, ShaderProgram& shader) {
         std::vector<glm::vec3> points;
 
-		// Collect all active particle positions
         for (const auto& p : pool) {
             if (p.active) {
                 points.push_back(p.position);
             }
         }
-		// if no active particles, skip rendering
+
         if (points.empty()) return;
 
-		// Create VAO and VBO for rendering particles
+        // Create VAO and VBO using DSA
         GLuint VAO = 0, VBO = 0;
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
+        glCreateVertexArrays(1, &VAO);
+        glCreateBuffers(1, &VBO);
 
-		// Bind VAO and VBO, upload particle positions
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(glm::vec3), points.data(), GL_STATIC_DRAW);
+        glNamedBufferData(VBO, points.size() * sizeof(glm::vec3), points.data(), GL_STATIC_DRAW);
 
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+        // Attach VBO to VAO, layout location 0
+        glVertexArrayVertexBuffer(VAO, 0, VBO, 0, sizeof(glm::vec3));
+        glEnableVertexArrayAttrib(VAO, 0);
+        glVertexArrayAttribFormat(VAO, 0, 3, GL_FLOAT, GL_FALSE, 0);
+        glVertexArrayAttribBinding(VAO, 0, 0); // bind attribute index 0 to binding index 0
 
-		// Activate shader and set uniforms
+        // Activate shader and set uniforms via DSA
         shader.activate();
+        GLuint programID = shader.getID();
+
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 mvp = projection * view * model;
-        shader.setUniform("uMVP", mvp);
-        shader.setUniform("color", glm::vec4(1, 0.7f, 0.2f, 1)); // orange sparks
 
-		// Draw particles as points
+        GLint locMVP = glGetUniformLocation(programID, "uMVP");
+        GLint locColor = glGetUniformLocation(programID, "color");
+
+        glProgramUniformMatrix4fv(programID, locMVP, 1, GL_FALSE, &mvp[0][0]);
+        glProgramUniform4f(programID, locColor, 1.0f, 0.7f, 0.2f, 1.0f); // orange
+
         glEnable(GL_PROGRAM_POINT_SIZE);
         glPointSize(5.0f);
+        glBindVertexArray(VAO);
         glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(points.size()));
-
-		// Cleanup
         glBindVertexArray(0);
+
+        // Cleanup
         glDeleteBuffers(1, &VBO);
         glDeleteVertexArrays(1, &VAO);
     }
+
 
 }

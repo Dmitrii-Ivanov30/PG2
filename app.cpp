@@ -148,6 +148,10 @@ bool App::init() {
     // enable antialiasing
     if (AA) glEnable(GL_MULTISAMPLE);
 
+    if (glewIsSupported("GL_ARB_direct_state_access")) {
+        std::cout << "DSA is supported via ARB extension!" << std::endl;
+    }
+
     // initial view matrix
     updateProjection();
     camera.position = glm::vec3(0.0f, 0.0f, 3.0f);

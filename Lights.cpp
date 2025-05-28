@@ -45,41 +45,41 @@ AmbientLight AmbientLight::createDefault(const glm::vec3& color) {
 // Apply methods for each light type
 void DirectionalLight::apply(GLuint shaderID, int index) const {
     std::string prefix = "dirLights[" + std::to_string(index) + "]";
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".direction").c_str()), 1, glm::value_ptr(direction));
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".ambient").c_str()), 1, glm::value_ptr(ambient));
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".diffuse").c_str()), 1, glm::value_ptr(diffuse));
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".specular").c_str()), 1, glm::value_ptr(specular));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".direction").c_str()), 1, glm::value_ptr(direction));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".ambient").c_str()), 1, glm::value_ptr(ambient));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".diffuse").c_str()), 1, glm::value_ptr(diffuse));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".specular").c_str()), 1, glm::value_ptr(specular));
 }
 
 void PointLight::apply(GLuint shaderID, int index) const {
     std::string prefix = "pointLights[" + std::to_string(index) + "]";
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".position").c_str()), 1, glm::value_ptr(position));
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".ambient").c_str()), 1, glm::value_ptr(ambient));
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".diffuse").c_str()), 1, glm::value_ptr(diffuse));
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".specular").c_str()), 1, glm::value_ptr(specular));
-    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".constant").c_str()), constant);
-    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".linear").c_str()), linear);
-    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".quadratic").c_str()), quadratic);
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".position").c_str()), 1, glm::value_ptr(position));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".ambient").c_str()), 1, glm::value_ptr(ambient));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".diffuse").c_str()), 1, glm::value_ptr(diffuse));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".specular").c_str()), 1, glm::value_ptr(specular));
+    glProgramUniform1f(shaderID, glGetUniformLocation(shaderID, (prefix + ".constant").c_str()), constant);
+    glProgramUniform1f(shaderID, glGetUniformLocation(shaderID, (prefix + ".linear").c_str()), linear);
+    glProgramUniform1f(shaderID, glGetUniformLocation(shaderID, (prefix + ".quadratic").c_str()), quadratic);
 }
 
 void SpotLight::apply(GLuint shaderID, int index) const {
     std::string prefix = "spotLights[" + std::to_string(index) + "]";
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".position").c_str()), 1, glm::value_ptr(position));
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".direction").c_str()), 1, glm::value_ptr(direction));
-    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".cutOff").c_str()), cutOff);
-    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".outerCutOff").c_str()), outerCutOff);
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".ambient").c_str()), 1, glm::value_ptr(ambient));
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".diffuse").c_str()), 1, glm::value_ptr(diffuse));
-    glUniform3fv(glGetUniformLocation(shaderID, (prefix + ".specular").c_str()), 1, glm::value_ptr(specular));
-    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".constant").c_str()), constant);
-    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".linear").c_str()), linear);
-    glUniform1f(glGetUniformLocation(shaderID, (prefix + ".quadratic").c_str()), quadratic);
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".position").c_str()), 1, glm::value_ptr(position));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".direction").c_str()), 1, glm::value_ptr(direction));
+    glProgramUniform1f(shaderID, glGetUniformLocation(shaderID, (prefix + ".cutOff").c_str()), cutOff);
+    glProgramUniform1f(shaderID, glGetUniformLocation(shaderID, (prefix + ".outerCutOff").c_str()), outerCutOff);
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".ambient").c_str()), 1, glm::value_ptr(ambient));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".diffuse").c_str()), 1, glm::value_ptr(diffuse));
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, (prefix + ".specular").c_str()), 1, glm::value_ptr(specular));
+    glProgramUniform1f(shaderID, glGetUniformLocation(shaderID, (prefix + ".constant").c_str()), constant);
+    glProgramUniform1f(shaderID, glGetUniformLocation(shaderID, (prefix + ".linear").c_str()), linear);
+    glProgramUniform1f(shaderID, glGetUniformLocation(shaderID, (prefix + ".quadratic").c_str()), quadratic);
 }
 
-void AmbientLight::apply(GLuint shaderID, int index) const {
-    // Only one global ambient light is expected, so ignore index
-    glUniform3fv(glGetUniformLocation(shaderID, "ambientLight.color"), 1, glm::value_ptr(color));
+void AmbientLight::apply(GLuint shaderID, int /*index*/) const {
+    glProgramUniform3fv(shaderID, glGetUniformLocation(shaderID, "ambientLight.color"), 1, glm::value_ptr(color));
 }
+
 
 void Lights::initDirectionalLight() {
     sun = DirectionalLight::createDefault();

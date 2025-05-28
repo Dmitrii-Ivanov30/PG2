@@ -32,56 +32,54 @@ public:
     std::vector<GLuint> indices;
 
     // indirect (indexed) draw 
-    Mesh(GLenum primitive_type, ShaderProgram shader, std::vector<Vertex> const& vertices, std::vector<GLuint> const& indices, glm::vec3 const& origin, glm::vec3 const& orientation, GLuint const texture_id = 0) :
-        primitive_type(primitive_type),
-        shader(shader),
-        vertices(vertices),
-        indices(indices),
-        origin(origin),
-        orientation(orientation),
-        texture_id(texture_id)
+    Mesh(GLenum primitive_type, ShaderProgram shader, std::vector<Vertex> const& vertices, std::vector<GLuint> const& indices,
+     glm::vec3 const& origin, glm::vec3 const& orientation, GLuint const texture_id = 0)
+    : primitive_type(primitive_type), shader(shader), vertices(vertices), indices(indices),
+      origin(origin), orientation(orientation), texture_id(texture_id)
     {
-        // create and initialize VAO, VBO, EBO and set vertex attribute pointers
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        glGenBuffers(1, &EBO);
+        // Create buffers and VAO using DSA
+        glCreateVertexArrays(1, &VAO);
+        glCreateBuffers(1, &VBO);
+        glCreateBuffers(1, &EBO);
 
-        // bind VAO
-        glBindVertexArray(VAO);
+        // Upload data directly to VBO and EBO (no binding)
+        glNamedBufferData(VBO, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+        glNamedBufferData(EBO, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-        // bind and fill VBO
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+        // Attach buffers to VAO
+        glVertexArrayVertexBuffer(VAO, 0, VBO, 0, sizeof(Vertex));
+        glVertexArrayElementBuffer(VAO, EBO);
 
-        // bind and fill EBO
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+        // Vertex attributes
+        // layout(location = 0) => position
+        glEnableVertexArrayAttrib(VAO, 0);
+        glVertexArrayAttribFormat(VAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
+        glVertexArrayAttribBinding(VAO, 0, 0);
 
-        // vertex attribute pointers
-        // layout location 0: position (vec3)
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+        // layout(location = 1) => texcoord
+        glEnableVertexArrayAttrib(VAO, 1);
+        glVertexArrayAttribFormat(VAO, 1, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texcoord));
+        glVertexArrayAttribBinding(VAO, 1, 0);
 
-        // layout location 1: texcoord (vec2)
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texcoord));
+        // layout(location = 2) => normal
+        glEnableVertexArrayAttrib(VAO, 2);
+        glVertexArrayAttribFormat(VAO, 2, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
+        glVertexArrayAttribBinding(VAO, 2, 0);
 
-        // layout location 2: normal (vec3)
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+        tex0Loc = glGetUniformLocation(shader.getID(), "tex0");
+        numSpotLoc = glGetUniformLocation(shader.getID(), "numSpotLights");
+        numPointLoc = glGetUniformLocation(shader.getID(), "numPointLights");
+    }
 
-        // unbind VAO (best practice)
-        glBindVertexArray(0);
-    };
 
 
     // Helper to apply all lights to the shader
-    static void applyLights(GLuint shaderID,
-        const AmbientLight& ambientLight,
+    void applyLights(const AmbientLight& ambientLight,
         const DirectionalLight& dirLight,
         const std::vector<SpotLight>& spotLights,
         const std::vector<PointLight>& pointLights)
-    {   
+    {
+        GLuint shaderID = shader.getID();
         // Ambient Light
         ambientLight.apply(shaderID, 0);
 
@@ -93,14 +91,15 @@ public:
         for (const auto& spot : spotLights)
             spot.apply(shaderID, spotIndex++);
 
-        glUniform1i(glGetUniformLocation(shaderID, "numSpotLights"), spotIndex);
+        glProgramUniform1i(shaderID, numSpotLoc, spotIndex);
+
 
         // Point lights
         int pointIndex = 0;
         for (const auto& point : pointLights)
             point.apply(shaderID, pointIndex++);
 
-        glUniform1i(glGetUniformLocation(shaderID, "numPointLights"), pointIndex);
+        glProgramUniform1i(shaderID, numPointLoc, pointIndex);
     }
 
 
@@ -112,7 +111,7 @@ public:
         // Set texture if available
         if (texture_id != 0) {
             glBindTextureUnit(0, texture_id);
-            glUniform1i(glGetUniformLocation(shader.getID(), "tex0"), 0);
+            glProgramUniform1i(shader.getID(), tex0Loc, 0);
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
@@ -132,7 +131,7 @@ public:
 
 
         // ****** APPLY LIGHTS HERE ******
-        applyLights(shader.getID(), ambientLight, dirLight, spotLights, pointLights);
+        applyLights(ambientLight, dirLight, spotLights, pointLights);
 
         // draw mesh
         glBindVertexArray(VAO);
@@ -166,6 +165,9 @@ public:
 private:
     // OpenGL buffer IDs
     // ID = 0 is reserved (i.e. uninitalized)
+    GLuint tex0Loc;
+    GLuint numSpotLoc;
+    GLuint numPointLoc;
     unsigned int VAO{ 0 }, VBO{ 0 }, EBO{ 0 };
 };
 
