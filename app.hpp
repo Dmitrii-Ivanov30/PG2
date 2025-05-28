@@ -82,6 +82,7 @@ protected:
     std::unordered_map<std::string, Model> scene;
     ShaderProgram shader;
     ShaderProgram particleShader;
+    Terrain* terrain;
 
 private:
     // default window settings

@@ -197,25 +197,28 @@ void App::initAssets(void) {
      */
     bool isTransparent = false;
     shader = ShaderProgram("resources/shaders/tex.vert", "resources/shaders/tex.frag");
-    Model terrainModel(shader);
+    terrain = new Terrain{ shader };
     GLuint texture_terrain = textureInit("resources/textures/tex_256.png", isTransparent);
 
-    terrainModel.transparent = isTransparent;
-    for (auto& mesh : terrainModel.meshes) {
+    terrain->transparent = isTransparent;
+    for (auto& mesh : terrain->meshes) {
         mesh.texture_id = texture_terrain;
     }
-    scene.emplace("terrain", std::move(terrainModel));
+    terrain->getHeightOnMap(camera.position, 0.2f);
+    // scene.emplace("Terrain", std::move(terrainModel));
 
     /*
      * Triangle init
      */
+    glm::vec3 initPos = glm::vec3(2.0f, 0.0f, 0.0f);
     isTransparent = true;
     // load shader program
     shader = ShaderProgram("resources/shaders/tex_1.vert", "resources/shaders/tex_1.frag");
 
     // load model
     Model triangleModel("resources/objects/triangle.obj", shader);
-    triangleModel.setPos(glm::vec3(2.0f, 0.0f, 0.0f));  // center the model
+    terrain->getHeightOnMap(initPos, triangleModel.getHeight() / 2.0f);
+    triangleModel.setPos(initPos);  // center the model
 
     // load texture
     GLuint texture = textureInit("resources/textures/transparent4.png", isTransparent);
@@ -233,7 +236,9 @@ void App::initAssets(void) {
      */
      // Load the bot model from an OBJ file
     Model botModel("resources/objects/triangle.obj", shader);
-    botModel.origin = glm::vec3(0.0f, 0.0f, 0.0f);
+    initPos = glm::vec3{ -0.5f, 0.0f, 0.0f };
+    terrain->getHeightOnMap(initPos, botModel.getHeight() / 2.0f);
+    // botModel.setPos(initPos);
     botModel.transparent = isTransparent;
     for (auto& mesh : botModel.meshes) {
         mesh.texture_id = texture;
@@ -242,8 +247,8 @@ void App::initAssets(void) {
     auto botModelPtr = &scene.at("bot"); // store pointer for entity
 
     // Create a bot entity at position (0,5,0) with WalkInCircle behavior
-    Entity bot(glm::vec3(0.0f, 0.0f, 0.0f), botModelPtr);
-    bot.setSpeed(glm::vec3(0.1f, 0.0f, 0.0f));
+    Entity bot(initPos, botModelPtr);
+    bot.setSpeed(glm::vec3(0.1f, 0.0f, -0.5f));
     // bot.behaviors.push_back(Behaviors::WalkInCircle(glm::vec3(10, 0, 10), 50.0f, 10.0f));
     entities.push_back(bot);
 
@@ -424,7 +429,9 @@ int App::run() {
         // --- ENTITY & PARTICLE LOGIC ---
         float groundHeight = 0.0f; // You could sample from terrain here if desired
         for (auto& ent : entities) {
-            ent.update(static_cast<float>(deltaTime), groundHeight);
+            glm::vec3 entityPosition = ent.position;
+            terrain->getHeightOnMap(entityPosition, ent.model->getHeight() / 2.0f);
+            ent.update(static_cast<float>(deltaTime), entityPosition.y);
             //std::cout << "Bot position: " << ent.position.x << ", " << ent.position.y << ", " << ent.position.z << std::endl;
 
             // Example: spawn sparks at bot position every time it passes a certain y threshold
@@ -490,6 +497,7 @@ int App::run() {
         lights.spotLights[movingSpotIndex].direction = spotDir;
         lights.spotLights[movingSpotIndex].ambient = glm::vec3(0.1f, 0.1f, 1.0f);
 
+        terrain->draw(projectionMatrix, viewMatrix, lights);
         // Draw all models in the scene
         for (auto & [name, model] : scene) {
             if (!model.transparent) {
@@ -575,6 +583,7 @@ App::~App() {
     // cleanup models and shaders
     scene.clear();
     shader.clear();
+    delete terrain;
 
     if (window) {
         glfwDestroyWindow(window);
