@@ -24,8 +24,8 @@ public:
     bool transparent{ false };
     glm::vec3 AABBMin{ FLT_MAX };
     glm::vec3 AABBMax{ -FLT_MAX };
-    glm::vec3 AABBTransformedMin;
-    glm::vec3 AABBTransformedMax;
+    glm::vec3 AABBTransformedMin{0.0f};
+    glm::vec3 AABBTransformedMax{0.0f};
     bool transformed{ false };
 
     glm::mat4 modelMatrix{ 1.0f };  // model matrix for transformations
@@ -34,10 +34,7 @@ public:
     Model(const std::filesystem::path& filename, ShaderProgram shader) : shader(shader) {
         loadModel(filename);
     }
-    Model(ShaderProgram shader) : shader(shader) {
-        loadTerrainModel();
-        origin = glm::vec3(0.0f, 0.0f, 0.0f);
-    };
+    Model(ShaderProgram shader) : shader(shader){};
 
     void setPos(const glm::vec3& pos) {
         origin = pos;
@@ -96,6 +93,10 @@ public:
         return AABBTransformedMax;
     }
 
+    float getHeight() {
+        return getAABBMax().y - getAABBMin().y;
+    }
+
     void draw(const glm::mat4& projection, const glm::mat4& view, const Lights& lights) {
         updateAABBAndModelMatrix();
 
@@ -118,17 +119,11 @@ public:
         }
     }
 
-    glm::vec3 closestPointOnAABB(const glm::vec3& point) {
-        return glm::clamp(point, AABBMin, AABBMax);
-    }
-
 
 private:
 #include <tuple>
     static constexpr uint MAX_POINT_LIGHTS = 15;
     static constexpr uint MAX_SPOT_LIGHTS = 15;
-    int mesh_step_size = 30; // Controls mesh triangle density/detail
-    float height_scale = 0.5f; // Controls height exaggeration
 
 
     void loadModel(const std::filesystem::path& path) {
@@ -160,6 +155,8 @@ private:
             AABBMin = glm::min(AABBMin, positions[i]);
 
         }
+        AABBTransformedMax = AABBMax;
+        AABBTransformedMin = AABBMin;
         // create Mesh and store it
         meshes.emplace_back(GL_TRIANGLES, shader, vertices, indices, origin, orientation);
 
@@ -173,19 +170,6 @@ private:
             << "Vertices: " << vertices.size() << "\n"
             << "Indices: " << indices.size() << "\n"
             << "Meshes: " << meshes.size() << std::endl;
-    }
-    void loadTerrainModel() {
-        cv::Mat terrain = cv::imread("resources/textures/heights.png", cv::IMREAD_GRAYSCALE);
-        if (terrain.empty()) {
-            throw std::runtime_error("No heightmap in file: resources/textures/heights.png");
-        }
-        HeightMap map{};
-        auto terrainMeshes = map.GenHeightMap(terrain, mesh_step_size, height_scale, shader);
-        for (auto& mesh : terrainMeshes) {
-            meshes.push_back(mesh);
-        }
-        name = "Terrain";
-        std::cout << "Loaded heightmap: resources/textures/heights.png" << std::endl;
     }
 
     std::vector<PointLight> selectPointLights(const std::vector<PointLight>& lights) {
@@ -216,5 +200,54 @@ private:
             });
         sorted.resize(MAX_SPOT_LIGHTS);
         return sorted;
+    }
+};
+
+class Terrain : public Model {
+    public:
+    Terrain(ShaderProgram shader) : Model(shader) {
+        loadTerrainModel();
+        origin = glm::vec3(0.0f, 0.0f, 0.0f);
+    };
+    void getHeightOnMap(glm::vec3& pos, float modelHeight=0) {
+        float denom = (maxMapVal - minMapVal > 1e-5) ? (maxMapVal - minMapVal) : 1.0;
+
+        // Offsets to recenter terrain
+        float x_offset = (hmap.cols - mesh_step_size) / 2.0f;
+        float z_offset = (hmap.rows - mesh_step_size) / 2.0f;
+
+        // Convert world x, z into image coordinates
+        int col = static_cast<int>((pos.x / mapScaleXZ) + x_offset);
+        int row = static_cast<int>((pos.z / mapScaleXZ) + z_offset);
+
+        if (col < 0 || row < 0 || col >= hmap.cols || row >= hmap.rows) {
+            pos.y = 0.0f;  // Outside bounds
+            return;
+        }
+        // Get pixel value and compute height
+        float raw = static_cast<float>(hmap.at<uchar>(cv::Point(col, row)));
+        float normalized = (raw - static_cast<float>(minMapVal)) / denom;
+        float centered = (normalized - 0.5f) * 2.0f;
+        pos.y = centered * height_scale + modelHeight;
+    }
+    private:
+    int mesh_step_size = 30; // Controls mesh triangle density/detail
+    float height_scale = 1.5f; // Controls height exaggeration
+    cv::Mat hmap;
+    double minMapVal, maxMapVal;
+    float mapScaleXZ = 1/20.0f;
+    void loadTerrainModel() {
+        hmap = cv::imread("resources/textures/heights.png", cv::IMREAD_GRAYSCALE);
+        if (hmap.empty()) {
+            throw std::runtime_error("No heightmap in file: resources/textures/heights.png");
+        }
+        HeightMap map{};
+        auto terrainMeshes = map.GenHeightMap(hmap, mesh_step_size,
+            height_scale, minMapVal, maxMapVal, mapScaleXZ, shader);
+        for (auto& mesh : terrainMeshes) {
+            meshes.push_back(mesh);
+        }
+        name = "Terrain";
+        std::cout << "Loaded heightmap: resources/textures/heights.png" << std::endl;
     }
 };

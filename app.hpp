@@ -80,6 +80,7 @@ public:
 protected:
     // all objects of the scene addressable by name  
     std::unordered_map<std::string, Model> scene;
+    Terrain *terrain;
     ShaderProgram shader;
     ShaderProgram particleShader;
 
