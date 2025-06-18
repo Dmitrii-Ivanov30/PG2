@@ -110,4 +110,5 @@ private:
 
     void loadConfig();
     void printGLInfo();
+    void applyLights();
 };

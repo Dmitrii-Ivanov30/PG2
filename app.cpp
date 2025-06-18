@@ -412,6 +412,32 @@ void App::initLights() {
     lights.initAmbientLight(glm::vec3(0.0f));
 }
 
+void App::applyLights()
+{
+    // Ambient Light
+    lights.ambientLight.apply(shader, 0);
+
+    // Directional light
+    lights.sun.apply(shader, 0);
+
+    // Spotlights
+    int spotIndex = 0;
+    for (const auto& spot : lights.spotLights)
+        spot.apply(shader, spotIndex++);
+
+    // glProgramUniform1i(shaderID, numSpotLoc, spotIndex);
+    shader.setUniform("numSpotLights", spotIndex);
+
+
+    // Point lights
+    int pointIndex = 0;
+    for (const auto& point : lights.pointLights)
+        point.apply(shader, pointIndex++);
+
+    // glProgramUniform1i(shaderID, numPointLoc, pointIndex);
+    shader.setUniform("numPointLights", pointIndex);
+}
+
 int App::run() {
     // Enable back-face culling to improve performance by not rendering polygons facing away from the camera
     glCullFace(GL_BACK);
@@ -527,12 +553,17 @@ int App::run() {
         lights.spotLights[movingSpotIndex].position = spotPos;
         lights.spotLights[movingSpotIndex].direction = spotDir;
         lights.spotLights[movingSpotIndex].ambient = glm::vec3(0.1f, 0.1f, 1.0f);
-      
-        terrain->draw(projectionMatrix, viewMatrix, lights, camera.position);
+
+        // Pass lights to the main shader
+        applyLights();
+
+        // draw terrain
+        terrain->draw(projectionMatrix, viewMatrix, camera.position);
+
         // Draw all models in the scene
         for (auto & [name, model] : scene) {
             if (!model.transparent) {
-                model.draw(projectionMatrix, viewMatrix, lights, camera.position);
+                model.draw(projectionMatrix, viewMatrix, camera.position);
             }
             else
                 transparent.emplace_back(&model); // save pointer for painters algorithm
@@ -544,7 +575,7 @@ int App::run() {
         glEnable(GL_BLEND);
         glDepthMask(GL_FALSE);
         for (auto p : transparent) {
-            p->draw(projectionMatrix, viewMatrix, lights, camera.position);
+            p->draw(projectionMatrix, viewMatrix, camera.position);
         }
         glDisable(GL_BLEND);
         glDepthMask(GL_TRUE);
